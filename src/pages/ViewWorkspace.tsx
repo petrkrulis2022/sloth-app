@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout";
-import { IssueList } from "@/components/issue";
+import { KanbanBoard } from "@/components/issue";
 import { DocumentsBox } from "@/components/document";
 import { LinksBox } from "@/components/link";
 import { AIChatBox } from "@/components/ai";
@@ -16,7 +16,7 @@ import {
   updateIssue,
   deleteIssue,
 } from "@/services";
-import type { Project, View, Issue } from "@/types";
+import type { Project, View, Issue, IssueStatus } from "@/types";
 
 export function ViewWorkspace() {
   const { id } = useParams<{ id: string }>();
@@ -101,6 +101,7 @@ export function ViewWorkspace() {
       parentId: null,
       name: newIssueName,
       description: newIssueDescription || null,
+      status: "not-started",
       createdBy: session.userId,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -173,6 +174,35 @@ export function ViewWorkspace() {
       addToast("success", "Issue deleted successfully");
     } else {
       addToast("error", result.message || "Failed to delete issue");
+    }
+  };
+
+  const handleUpdateStatus = async (
+    issueId: string,
+    newStatus: IssueStatus
+  ) => {
+    const issue = issues.find((i) => i.id === issueId);
+    if (!issue) return;
+
+    // Optimistic update
+    setIssues((prev) =>
+      prev.map((i) => (i.id === issueId ? { ...i, status: newStatus } : i))
+    );
+
+    const result = await updateIssue(issueId, {
+      name: issue.name,
+      description: issue.description,
+      status: newStatus,
+    });
+
+    if (result.success) {
+      addToast("success", "Status updated");
+    } else {
+      // Revert on error
+      setIssues((prev) =>
+        prev.map((i) => (i.id === issueId ? { ...i, status: issue.status } : i))
+      );
+      addToast("error", result.message || "Failed to update status");
     }
   };
 
@@ -299,15 +329,22 @@ export function ViewWorkspace() {
             </div>
 
             {topLevelIssues.length === 0 ? (
-              <div className="bg-surface rounded-lg border border-default p-4 text-center">
-                <p className="text-sm text-muted">No issues yet</p>
+              <div className="bg-surface rounded-lg border border-default p-8 text-center">
+                <p className="text-sm text-muted mb-4">No issues yet</p>
+                <button
+                  onClick={handleCreateIssue}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-md text-sm font-medium transition-colors"
+                >
+                  Create Issue
+                </button>
               </div>
             ) : (
-              <IssueList
+              <KanbanBoard
                 issues={topLevelIssues}
-                onSelect={handleSelectIssue}
-                onEdit={handleEditIssue}
-                onDelete={handleDeleteIssue}
+                onSelectIssue={handleSelectIssue}
+                onEditIssue={handleEditIssue}
+                onDeleteIssue={handleDeleteIssue}
+                onUpdateStatus={handleUpdateStatus}
               />
             )}
           </div>

@@ -43,12 +43,15 @@ export interface View {
   updatedAt: Date;
 }
 
+export type IssueStatus = "not-started" | "in-progress" | "done";
+
 export interface Issue {
   id: string;
   viewId: string;
   parentId: string | null;
   name: string;
   description: string | null;
+  status: IssueStatus;
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;

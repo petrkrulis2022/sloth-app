@@ -27,6 +27,7 @@ function toIssue(dbIssue: {
   parent_id: string | null;
   name: string;
   description: string | null;
+  status?: string;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -37,6 +38,7 @@ function toIssue(dbIssue: {
     parentId: dbIssue.parent_id,
     name: dbIssue.name,
     description: dbIssue.description,
+    status: (dbIssue.status as any) || "not-started",
     createdBy: dbIssue.created_by,
     createdAt: new Date(dbIssue.created_at),
     updatedAt: new Date(dbIssue.updated_at),
@@ -158,6 +160,7 @@ export async function createIssue(
         view_id: viewId,
         name: name.trim(),
         description: description?.trim() || null,
+        status: "not-started",
         created_by: createdBy,
       })
       .select()
@@ -250,7 +253,7 @@ export async function createSubIssue(
  */
 export async function updateIssue(
   issueId: string,
-  updates: { name?: string; description?: string | null }
+  updates: { name?: string; description?: string | null; status?: string }
 ): Promise<IssueResponse<Issue>> {
   if (updates.name !== undefined && !validateIssueName(updates.name)) {
     return {
@@ -279,6 +282,7 @@ export async function updateIssue(
     if (updates.name !== undefined) updateData.name = updates.name.trim();
     if (updates.description !== undefined)
       updateData.description = updates.description?.trim() || null;
+    if (updates.status !== undefined) updateData.status = updates.status;
 
     const { data, error } = await db
       .from("issues")
