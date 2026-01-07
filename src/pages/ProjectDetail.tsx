@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout";
 import { InviteCollaboratorModal } from "@/components/invitation";
+import { DocumentsBox } from "@/components/document";
+import { LinksBox } from "@/components/link";
+import { AIChatBox } from "@/components/ai";
 import { useCommand } from "@/contexts";
 import { useToast } from "@/components/ui";
 import {
@@ -314,16 +317,100 @@ export function ProjectDetail() {
       views={views}
       onSelectView={handleSelectView}
     >
-      <div className="max-w-4xl">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-semibold text-primary">
-            {project.name}
-          </h2>
-          <div className="flex gap-2">
-            <button
-              onClick={handleEditProject}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-surface hover:bg-surface-hover border border-default rounded-md text-sm font-medium text-secondary hover:text-primary transition-colors"
-            >
+      <div className="flex gap-6 h-full">
+        {/* Main content area */}
+        <div className="flex-1 min-w-0 space-y-6">
+          {/* Project Header */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-2xl font-semibold text-primary">
+                {project.name}
+              </h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleEditProject}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-surface hover:bg-surface-hover border border-default rounded-md text-sm font-medium text-secondary hover:text-primary transition-colors"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                    />
+                  </svg>
+                  Edit
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-surface hover:bg-red-900/30 border border-default hover:border-red-600 rounded-md text-sm font-medium text-secondary hover:text-red-400 transition-colors"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
+                  </svg>
+                  Delete
+                </button>
+                <button
+                  onClick={handleInviteCollaborator}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-surface hover:bg-surface-hover border border-default rounded-md text-sm font-medium text-secondary hover:text-primary transition-colors"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                    />
+                  </svg>
+                  Invite
+                </button>
+                <button
+                  onClick={handleCopyProject}
+                  disabled={isCopying}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-surface hover:bg-surface-hover border border-default rounded-md text-sm font-medium text-secondary hover:text-primary transition-colors disabled:opacity-50"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
+                  </svg>
+                  {isCopying ? "Copying..." : "Copy"}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* AI Discussion Box - Full Width */}
+          <div className="bg-surface border border-default rounded-lg p-4">
+            <h3 className="text-sm font-medium text-secondary uppercase tracking-wider mb-3 flex items-center gap-2">
               <svg
                 className="w-4 h-4"
                 fill="none"
@@ -334,171 +421,127 @@ export function ProjectDetail() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
                 />
               </svg>
-              Edit
-            </button>
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-surface hover:bg-red-900/30 border border-default hover:border-red-600 rounded-md text-sm font-medium text-secondary hover:text-red-400 transition-colors"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+              AI Strategic Assistant
+            </h3>
+            <AIChatBox
+              contextType="project"
+              contextId={project.id}
+              userId={getCurrentSession()?.userId || ""}
+            />
+          </div>
+
+          {/* Views section */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-primary">Views</h3>
+              <button
+                onClick={handleCreateView}
+                className="inline-flex items-center gap-2 px-3 py-1.5 bg-surface hover:bg-surface-hover border border-default hover:border-hover text-secondary hover:text-primary rounded-md text-sm transition-colors"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                />
-              </svg>
-              Delete
-            </button>
-            <button
-              onClick={handleInviteCollaborator}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-surface hover:bg-surface-hover border border-default rounded-md text-sm font-medium text-secondary hover:text-primary transition-colors"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-                />
-              </svg>
-              Invite
-            </button>
-            <button
-              onClick={handleCopyProject}
-              disabled={isCopying}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-surface hover:bg-surface-hover border border-default rounded-md text-sm font-medium text-secondary hover:text-primary transition-colors disabled:opacity-50"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                />
-              </svg>
-              {isCopying ? "Copying..." : "Copy"}
-            </button>
-            <button
-              onClick={handleCreateView}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-md text-sm font-medium transition-colors"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              Create View
-            </button>
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                Create View
+              </button>
+            </div>
+
+            {views.length === 0 ? (
+              <div className="bg-surface rounded-lg border border-default p-4 text-center">
+                <p className="text-sm text-muted">No views yet</p>
+              </div>
+            ) : (
+              <div className="grid gap-3">
+                {views.map((view) => (
+                  <div
+                    key={view.id}
+                    className="bg-surface border border-default rounded-lg p-3 hover:border-hover transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <button
+                        onClick={() => handleSelectView(view.id)}
+                        className="flex items-center gap-3 flex-1 text-left hover:opacity-80 transition-opacity"
+                      >
+                        <div className="flex flex-col gap-1">
+                          <h3 className="text-base font-medium text-primary">
+                            {view.name}
+                          </h3>
+                          <span className="text-xs font-mono text-muted">
+                            {view.tag}
+                          </span>
+                        </div>
+                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e) => handleEditView(view, e)}
+                          className="p-2 hover:bg-surface-hover rounded transition-colors"
+                          title="Edit view"
+                        >
+                          <svg
+                            className="w-4 h-4 text-secondary hover:text-primary"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={(e) => handleDeleteView(view.id, e)}
+                          disabled={deletingViewId === view.id}
+                          className="p-2 hover:bg-red-900/30 rounded transition-colors disabled:opacity-50"
+                          title="Delete view"
+                        >
+                          <svg
+                            className="w-4 h-4 text-secondary hover:text-red-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        {views.length === 0 ? (
-          <div className="bg-surface rounded-lg border border-default p-8 text-center">
-            <h3 className="text-lg font-medium text-primary mb-2">
-              No views yet
-            </h3>
-            <p className="text-secondary mb-6">
-              Create your first view to organize your work
-            </p>
-            <button
-              onClick={handleCreateView}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-md text-sm font-medium transition-colors"
-            >
-              Create View
-            </button>
+        {/* Right-hand sidebar - Only Documents and Links */}
+        <aside className="w-80 flex-shrink-0">
+          <div className="bg-surface border border-default rounded-lg p-4 h-fit space-y-6">
+            {/* Documents Box */}
+            <DocumentsBox contextType="project" contextId={project.id} />
+
+            {/* Links Box */}
+            <LinksBox contextType="project" contextId={project.id} />
           </div>
-        ) : (
-          <div className="grid gap-4">
-            {views.map((view) => (
-              <div
-                key={view.id}
-                className="bg-surface border border-default rounded-lg p-4 transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <button
-                    onClick={() => handleSelectView(view.id)}
-                    className="flex items-center gap-3 flex-1 text-left hover:opacity-80 transition-opacity"
-                  >
-                    <span className="px-2 py-1 bg-teal-900/30 text-teal-400 text-xs font-mono rounded">
-                      {view.tag}
-                    </span>
-                    <h3 className="text-lg font-medium text-primary">
-                      {view.name}
-                    </h3>
-                  </button>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={(e) => handleEditView(view, e)}
-                      className="p-2 hover:bg-surface-hover rounded transition-colors"
-                      title="Edit view"
-                    >
-                      <svg
-                        className="w-4 h-4 text-secondary hover:text-primary"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                        />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={(e) => handleDeleteView(view.id, e)}
-                      disabled={deletingViewId === view.id}
-                      className="p-2 hover:bg-red-900/30 rounded transition-colors disabled:opacity-50"
-                      title="Delete view"
-                    >
-                      <svg
-                        className="w-4 h-4 text-secondary hover:text-red-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        </aside>
       </div>
 
       {/* Create View Modal */}

@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout";
 import { IssueList } from "@/components/issue";
-import { ViewContextSidebar } from "@/components/view";
+import { DocumentsBox } from "@/components/document";
+import { LinksBox } from "@/components/link";
+import { AIChatBox } from "@/components/ai";
 import { useCommand } from "@/contexts";
 import { useToast } from "@/components/ui";
 import {
@@ -235,20 +237,20 @@ export function ViewWorkspace() {
     >
       <div className="flex gap-6 h-full">
         {/* Main content area */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <span className="px-2 py-1 bg-teal-900/30 text-teal-400 text-xs font-mono rounded">
-                {view.tag}
-              </span>
+        <div className="flex-1 min-w-0 space-y-6">
+          {/* View Header */}
+          <div>
+            <div className="flex items-center gap-3 mb-2">
               <h2 className="text-2xl font-semibold text-primary">
                 {view.name}
               </h2>
             </div>
-            <button
-              onClick={handleCreateIssue}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-md text-sm font-medium transition-colors"
-            >
+            <span className="text-xs font-mono text-muted">{view.tag}</span>
+          </div>
+
+          {/* AI Discussion Box - Full Width */}
+          <div className="bg-surface border border-default rounded-lg p-4">
+            <h3 className="text-sm font-medium text-secondary uppercase tracking-wider mb-3 flex items-center gap-2">
               <svg
                 className="w-4 h-4"
                 fill="none"
@@ -259,42 +261,68 @@ export function ViewWorkspace() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M12 4v16m8-8H4"
+                  d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
                 />
               </svg>
-              Create New Custom Issue
-            </button>
+              AI Strategic Assistant
+            </h3>
+            <AIChatBox
+              contextType="view"
+              contextId={view.id}
+              userId={session?.userId || ""}
+            />
           </div>
 
-          {topLevelIssues.length === 0 ? (
-            <div className="bg-surface rounded-lg border border-default p-8 text-center">
-              <h3 className="text-lg font-medium text-primary mb-2">
-                No issues yet
-              </h3>
-              <p className="text-secondary mb-6">
-                Create your first issue to start tracking work
-              </p>
+          {/* Issues section */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-primary">Issues</h3>
               <button
                 onClick={handleCreateIssue}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-md text-sm font-medium transition-colors"
+                className="inline-flex items-center gap-2 px-3 py-1.5 bg-surface hover:bg-surface-hover border border-default hover:border-hover text-secondary hover:text-primary rounded-md text-sm transition-colors"
               >
-                Create Issue
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                Create New Custom Issue
               </button>
             </div>
-          ) : (
-            <IssueList
-              issues={topLevelIssues}
-              onSelect={handleSelectIssue}
-              onEdit={handleEditIssue}
-              onDelete={handleDeleteIssue}
-            />
-          )}
+
+            {topLevelIssues.length === 0 ? (
+              <div className="bg-surface rounded-lg border border-default p-4 text-center">
+                <p className="text-sm text-muted">No issues yet</p>
+              </div>
+            ) : (
+              <IssueList
+                issues={topLevelIssues}
+                onSelect={handleSelectIssue}
+                onEdit={handleEditIssue}
+                onDelete={handleDeleteIssue}
+              />
+            )}
+          </div>
         </div>
 
-        {/* Right-hand context sidebar */}
-        {session && (
-          <ViewContextSidebar viewId={view.id} userId={session.userId} />
-        )}
+        {/* Right-hand sidebar - Only Documents and Links */}
+        <aside className="w-80 flex-shrink-0">
+          <div className="bg-surface border border-default rounded-lg p-4 h-fit space-y-6">
+            {/* Documents Box */}
+            <DocumentsBox contextType="view" contextId={view.id} />
+
+            {/* Links Box */}
+            <LinksBox contextType="view" contextId={view.id} />
+          </div>
+        </aside>
       </div>
 
       {/* Create Issue Modal */}

@@ -66,7 +66,15 @@ async function validateContext(
   contextType: DocumentContextType,
   contextId: string
 ): Promise<boolean> {
-  const table = contextType === "view" ? "views" : "issues";
+  let table: string;
+  if (contextType === "project") {
+    table = "projects";
+  } else if (contextType === "view") {
+    table = "views";
+  } else {
+    table = "issues";
+  }
+  
   const { data } = await db
     .from(table)
     .select("id")
@@ -102,10 +110,11 @@ export async function uploadDocument(
   try {
     const contextExists = await validateContext(contextType, contextId);
     if (!contextExists) {
+      const contextName = contextType === "project" ? "Project" : contextType === "view" ? "View" : "Issue";
       return {
         success: false,
         error: "CONTEXT_NOT_FOUND",
-        message: `${contextType === "view" ? "View" : "Issue"} not found.`,
+        message: `${contextName} not found.`,
       };
     }
 
@@ -165,14 +174,15 @@ export async function getDocuments(
   try {
     const contextExists = await validateContext(contextType, contextId);
     if (!contextExists) {
+      const contextName = contextType === "project" ? "Project" : contextType === "view" ? "View" : "Issue";
       return {
         success: false,
         error: "CONTEXT_NOT_FOUND",
-        message: `${contextType === "view" ? "View" : "Issue"} not found.`,
+        message: `${contextName} not found.`,
       };
     }
 
-    const { data: documents, error } = await db
+    const { data, error } = await db
       .from("documents")
       .select("*")
       .eq("context_type", contextType)
@@ -181,7 +191,7 @@ export async function getDocuments(
     if (error) throw error;
 
     const uploaderIds = [
-      ...new Set((documents || []).map((d) => d.uploaded_by)),
+      ...new Set((data || []).map((d) => d.uploaded_by)),
     ];
     let uploaders: Record<
       string,
@@ -200,7 +210,7 @@ export async function getDocuments(
       }, {} as typeof uploaders);
     }
 
-    const documentsWithUploader: DocumentWithUploader[] = (documents || []).map(
+    const documentsWithUploader: DocumentWithUploader[] = (data || []).map(
       (d) => ({
         ...toDocument(d),
         uploader: uploaders[d.uploaded_by]

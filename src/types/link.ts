@@ -4,9 +4,9 @@
  */
 
 /**
- * Context type for links - can be attached to views or issues
+ * Context type for links - can be attached to projects, views or issues
  */
-export type LinkContextType = "view" | "issue";
+export type LinkContextType = "project" | "view" | "issue";
 
 /**
  * Link entity representing an external link

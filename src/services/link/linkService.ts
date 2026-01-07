@@ -48,7 +48,15 @@ async function validateContext(
   contextType: LinkContextType,
   contextId: string
 ): Promise<boolean> {
-  const table = contextType === "view" ? "views" : "issues";
+  let table: string;
+  if (contextType === "project") {
+    table = "projects";
+  } else if (contextType === "view") {
+    table = "views";
+  } else {
+    table = "issues";
+  }
+  
   const { data } = await db
     .from(table)
     .select("id")
@@ -75,10 +83,11 @@ export async function addLink(
   try {
     const contextExists = await validateContext(contextType, contextId);
     if (!contextExists) {
+      const contextName = contextType === "project" ? "Project" : contextType === "view" ? "View" : "Issue";
       return {
         success: false,
         error: "CONTEXT_NOT_FOUND",
-        message: `${contextType === "view" ? "View" : "Issue"} not found.`,
+        message: `${contextName} not found.`,
       };
     }
 
@@ -120,10 +129,11 @@ export async function getLinks(
   try {
     const contextExists = await validateContext(contextType, contextId);
     if (!contextExists) {
+      const contextName = contextType === "project" ? "Project" : contextType === "view" ? "View" : "Issue";
       return {
         success: false,
         error: "CONTEXT_NOT_FOUND",
-        message: `${contextType === "view" ? "View" : "Issue"} not found.`,
+        message: `${contextName} not found.`,
       };
     }
 

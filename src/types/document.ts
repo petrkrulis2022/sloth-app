@@ -4,9 +4,9 @@
  */
 
 /**
- * Context type for documents - can be attached to views or issues
+ * Context type for documents - can be attached to projects, views or issues
  */
-export type DocumentContextType = "view" | "issue";
+export type DocumentContextType = "project" | "view" | "issue";
 
 /**
  * Document entity representing an uploaded file
