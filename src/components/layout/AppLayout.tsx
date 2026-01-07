@@ -68,22 +68,24 @@ export function AppLayout({
               Sloth.app
             </h1>
 
-            {/* Horizontal Issues List */}
-            {issues.length > 0 && (
+            {/* Horizontal Views List */}
+            {views.length > 0 && (
               <div className="flex-1 min-w-0 ml-6">
                 <div className="flex items-center gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-charcoal-700 scrollbar-track-transparent pb-1">
-                  {issues.map((issue) => (
+                  {views.map((view) => (
                     <button
-                      key={issue.id}
-                      onClick={() => onSelectIssue?.(issue.id)}
-                      className={`flex-shrink-0 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
-                        activeIssueId === issue.id
+                      key={view.id}
+                      onClick={() => onSelectView?.(view.id)}
+                      className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
+                        activeViewId === view.id
                           ? "bg-teal-600 text-white"
                           : "bg-app hover:bg-surface-hover text-secondary hover:text-primary border border-default"
                       }`}
-                      title={issue.description || issue.name}
                     >
-                      {issue.name}
+                      <span className="text-xs font-mono opacity-75">
+                        {view.tag}
+                      </span>
+                      <span>{view.name}</span>
                     </button>
                   ))}
                 </div>
