@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { useCommand } from "@/contexts";
-import type { Project } from "@/types";
+import type { Project, View } from "@/types";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -10,6 +10,9 @@ interface AppLayoutProps {
   activeProjectId?: string;
   onCreateProject?: () => void;
   onSelectProject?: (projectId: string) => void;
+  views?: View[];
+  activeViewId?: string;
+  onSelectView?: (viewId: string) => void;
 }
 
 export function AppLayout({
@@ -18,6 +21,9 @@ export function AppLayout({
   activeProjectId,
   onCreateProject,
   onSelectProject,
+  views = [],
+  activeViewId,
+  onSelectView,
 }: AppLayoutProps) {
   const navigate = useNavigate();
   const { openCommandPalette, appContext } = useCommand();
@@ -52,13 +58,41 @@ export function AppLayout({
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header with logo */}
         <header className="flex items-center justify-between px-6 py-4 border-b border-default bg-surface">
-          <div className="flex items-center gap-3">
-            <img src="/sloth.svg" alt="Sloth.app" className="w-8 h-8" />
-            <h1 className="text-xl font-semibold text-primary">Sloth.app</h1>
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <img
+              src="/sloth.svg"
+              alt="Sloth.app"
+              className="w-8 h-8 flex-shrink-0"
+            />
+            <h1 className="text-xl font-semibold text-primary flex-shrink-0">
+              Sloth.app
+            </h1>
+
+            {/* Horizontal Issues List */}
+            {issues.length > 0 && (
+              <div className="flex-1 min-w-0 ml-6">
+                <div className="flex items-center gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-charcoal-700 scrollbar-track-transparent pb-1">
+                  {issues.map((issue) => (
+                    <button
+                      key={issue.id}
+                      onClick={() => onSelectIssue?.(issue.id)}
+                      className={`flex-shrink-0 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
+                        activeIssueId === issue.id
+                          ? "bg-teal-600 text-white"
+                          : "bg-app hover:bg-surface-hover text-secondary hover:text-primary border border-default"
+                      }`}
+                      title={issue.description || issue.name}
+                    >
+                      {issue.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Keyboard shortcuts indicator */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-shrink-0">
             <button
               onClick={() => navigate("/settings")}
               className="flex items-center gap-2 px-3 py-1.5 bg-app hover:bg-surface-hover border border-default rounded-md text-sm text-secondary hover:text-primary transition-colors"

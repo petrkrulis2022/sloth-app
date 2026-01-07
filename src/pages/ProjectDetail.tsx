@@ -209,6 +209,8 @@ export function ProjectDetail() {
       activeProjectId={id}
       onCreateProject={handleCreateProject}
       onSelectProject={handleSelectProject}
+      views={views}
+      onSelectView={handleSelectView}
     >
       <div className="max-w-4xl">
         <div className="flex items-center justify-between mb-6">

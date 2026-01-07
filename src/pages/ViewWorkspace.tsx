@@ -186,7 +186,7 @@ export function ViewWorkspace() {
       onSelectProject={handleSelectProject}
     >
       <div className="flex gap-6 h-full">
-        {/* Main content area - Issues */}
+        {/* Main content area */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -234,7 +234,12 @@ export function ViewWorkspace() {
               </button>
             </div>
           ) : (
-            <IssueList issues={topLevelIssues} onSelect={handleSelectIssue} />
+            <div className="bg-surface rounded-lg border border-default p-6">
+              <p className="text-secondary text-sm">
+                Issues are now displayed in the top navigation bar. Click on any
+                issue to view its details.
+              </p>
+            </div>
           )}
         </div>
 
