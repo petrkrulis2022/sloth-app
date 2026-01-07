@@ -76,16 +76,16 @@ export function AppLayout({
                     <button
                       key={view.id}
                       onClick={() => onSelectView?.(view.id)}
-                      className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
+                      className={`flex-shrink-0 flex flex-col items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
                         activeViewId === view.id
                           ? "bg-teal-600 text-white"
                           : "bg-app hover:bg-surface-hover text-secondary hover:text-primary border border-default"
                       }`}
                     >
+                      <span>{view.name}</span>
                       <span className="text-xs font-mono opacity-75">
                         {view.tag}
                       </span>
-                      <span>{view.name}</span>
                     </button>
                   ))}
                 </div>

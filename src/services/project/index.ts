@@ -2,6 +2,8 @@ export {
   getProjects,
   getProject,
   createProject,
+  updateProject,
+  deleteProject,
   copyProject,
   getCollaborators,
   getProjectViews,

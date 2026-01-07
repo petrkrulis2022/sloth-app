@@ -427,3 +427,87 @@ export async function getProjectPerplexityApiKey(
     return null;
   }
 }
+
+/**
+ * Updates a project
+ */
+export async function updateProject(
+  projectId: string,
+  updates: {
+    name?: string;
+    perplexitySpaceId?: string | null;
+    perplexitySpaceName?: string | null;
+    perplexityApiKey?: string | null;
+  }
+): Promise<ProjectResponse<Project>> {
+  try {
+    const dbUpdates: Record<string, unknown> = {};
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.perplexitySpaceId !== undefined)
+      dbUpdates.perplexity_space_id = updates.perplexitySpaceId;
+    if (updates.perplexitySpaceName !== undefined)
+      dbUpdates.perplexity_space_name = updates.perplexitySpaceName;
+    if (updates.perplexityApiKey !== undefined)
+      dbUpdates.perplexity_api_key = updates.perplexityApiKey;
+
+    dbUpdates.updated_at = new Date().toISOString();
+
+    const { data, error } = await db
+      .from("projects")
+      .update(dbUpdates)
+      .eq("id", projectId)
+      .select()
+      .single();
+
+    if (error || !data) {
+      return {
+        success: false,
+        error: "UNKNOWN_ERROR",
+        message: "Failed to update project",
+      };
+    }
+
+    return {
+      success: true,
+      data: toProject(data),
+    };
+  } catch (error) {
+    console.error("Error updating project:", error);
+    return {
+      success: false,
+      error: "UNKNOWN_ERROR",
+      message: "An unexpected error occurred",
+    };
+  }
+}
+
+/**
+ * Deletes a project and all its associated data
+ */
+export async function deleteProject(
+  projectId: string
+): Promise<ProjectResponse<void>> {
+  try {
+    const { error } = await db.from("projects").delete().eq("id", projectId);
+
+    if (error) {
+      return {
+        success: false,
+        error: "UNKNOWN_ERROR",
+        message: "Failed to delete project",
+      };
+    }
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error("Error deleting project:", error);
+    return {
+      success: false,
+      error: "UNKNOWN_ERROR",
+      message: "An unexpected error occurred",
+    };
+  }
+}
+

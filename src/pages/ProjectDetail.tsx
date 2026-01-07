@@ -11,6 +11,10 @@ import {
   copyProject,
   getCurrentSession,
   createView,
+  updateProject,
+  deleteProject,
+  updateView,
+  deleteView,
 } from "@/services";
 import type { Project, View } from "@/types";
 
@@ -30,6 +34,16 @@ export function ProjectDetail() {
   const [newViewName, setNewViewName] = useState("");
   const [newViewTag, setNewViewTag] = useState("");
   const [isCreatingView, setIsCreatingView] = useState(false);
+  const [showEditProjectModal, setShowEditProjectModal] = useState(false);
+  const [editProjectName, setEditProjectName] = useState("");
+  const [isUpdatingProject, setIsUpdatingProject] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [editingViewId, setEditingViewId] = useState<string | null>(null);
+  const [editViewName, setEditViewName] = useState("");
+  const [editViewTag, setEditViewTag] = useState("");
+  const [isUpdatingView, setIsUpdatingView] = useState(false);
+  const [deletingViewId, setDeletingViewId] = useState<string | null>(null);
 
   // Fetch project data
   const fetchProjectData = useCallback(async () => {
@@ -160,6 +174,94 @@ export function ProjectDetail() {
     setIsCopying(false);
   };
 
+  const handleEditProject = () => {
+    if (!project) return;
+    setEditProjectName(project.name);
+    setShowEditProjectModal(true);
+  };
+
+  const handleSubmitEditProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id || !editProjectName.trim()) return;
+
+    setIsUpdatingProject(true);
+    const result = await updateProject(id, { name: editProjectName.trim() });
+
+    if (result.success && result.data) {
+      setProject(result.data);
+      addToast("success", "Project updated successfully");
+      setShowEditProjectModal(false);
+    } else {
+      addToast("error", result.message || "Failed to update project");
+    }
+
+    setIsUpdatingProject(false);
+  };
+
+  const handleDeleteProject = async () => {
+    if (!id) return;
+
+    setIsDeleting(true);
+    const result = await deleteProject(id);
+
+    if (result.success) {
+      addToast("success", "Project deleted successfully");
+      navigate("/dashboard");
+    } else {
+      addToast("error", result.message || "Failed to delete project");
+    }
+
+    setIsDeleting(false);
+    setShowDeleteConfirm(false);
+  };
+
+  const handleEditView = (view: View, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingViewId(view.id);
+    setEditViewName(view.name);
+    setEditViewTag(view.tag);
+  };
+
+  const handleSubmitEditView = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingViewId || !editViewName.trim() || !editViewTag.trim()) return;
+
+    setIsUpdatingView(true);
+    const result = await updateView(editingViewId, {
+      name: editViewName.trim(),
+      tag: editViewTag.trim(),
+    });
+
+    if (result.success && result.data) {
+      setViews((prev) =>
+        prev.map((v) => (v.id === editingViewId ? result.data! : v))
+      );
+      addToast("success", "View updated successfully");
+      setEditingViewId(null);
+    } else {
+      addToast("error", result.message || "Failed to update view");
+    }
+
+    setIsUpdatingView(false);
+  };
+
+  const handleDeleteView = async (viewId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm("Are you sure you want to delete this view?")) return;
+
+    setDeletingViewId(viewId);
+    const result = await deleteView(viewId);
+
+    if (result.success) {
+      setViews((prev) => prev.filter((v) => v.id !== viewId));
+      addToast("success", "View deleted successfully");
+    } else {
+      addToast("error", result.message || "Failed to delete view");
+    }
+
+    setDeletingViewId(null);
+  };
+
   // Set up context and keyboard shortcut handler
   useEffect(() => {
     setAppContext("project");
@@ -218,6 +320,44 @@ export function ProjectDetail() {
             {project.name}
           </h2>
           <div className="flex gap-2">
+            <button
+              onClick={handleEditProject}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-surface hover:bg-surface-hover border border-default rounded-md text-sm font-medium text-secondary hover:text-primary transition-colors"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                />
+              </svg>
+              Edit
+            </button>
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-surface hover:bg-red-900/30 border border-default hover:border-red-600 rounded-md text-sm font-medium text-secondary hover:text-red-400 transition-colors"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                />
+              </svg>
+              Delete
+            </button>
             <button
               onClick={handleInviteCollaborator}
               className="inline-flex items-center gap-2 px-4 py-2 bg-surface hover:bg-surface-hover border border-default rounded-md text-sm font-medium text-secondary hover:text-primary transition-colors"
@@ -297,20 +437,65 @@ export function ProjectDetail() {
         ) : (
           <div className="grid gap-4">
             {views.map((view) => (
-              <button
+              <div
                 key={view.id}
-                onClick={() => handleSelectView(view.id)}
-                className="bg-surface hover:bg-surface-hover border border-default hover:border-hover rounded-lg p-4 text-left transition-colors"
+                className="bg-surface border border-default rounded-lg p-4 transition-colors"
               >
-                <div className="flex items-center gap-3">
-                  <span className="px-2 py-1 bg-teal-900/30 text-teal-400 text-xs font-mono rounded">
-                    {view.tag}
-                  </span>
-                  <h3 className="text-lg font-medium text-primary">
-                    {view.name}
-                  </h3>
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => handleSelectView(view.id)}
+                    className="flex items-center gap-3 flex-1 text-left hover:opacity-80 transition-opacity"
+                  >
+                    <span className="px-2 py-1 bg-teal-900/30 text-teal-400 text-xs font-mono rounded">
+                      {view.tag}
+                    </span>
+                    <h3 className="text-lg font-medium text-primary">
+                      {view.name}
+                    </h3>
+                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={(e) => handleEditView(view, e)}
+                      className="p-2 hover:bg-surface-hover rounded transition-colors"
+                      title="Edit view"
+                    >
+                      <svg
+                        className="w-4 h-4 text-secondary hover:text-primary"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteView(view.id, e)}
+                      disabled={deletingViewId === view.id}
+                      className="p-2 hover:bg-red-900/30 rounded transition-colors disabled:opacity-50"
+                      title="Delete view"
+                    >
+                      <svg
+                        className="w-4 h-4 text-secondary hover:text-red-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         )}
@@ -393,6 +578,158 @@ export function ProjectDetail() {
           isOpen={showInviteModal}
           onClose={handleCloseInviteModal}
         />
+      )}
+
+      {/* Edit Project Modal */}
+      {showEditProjectModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-surface border border-default rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-primary mb-4">
+              Edit Project
+            </h3>
+            <form onSubmit={handleSubmitEditProject}>
+              <div className="mb-4">
+                <label
+                  htmlFor="projectName"
+                  className="block text-sm font-medium text-secondary mb-2"
+                >
+                  Project Name
+                </label>
+                <input
+                  id="projectName"
+                  type="text"
+                  value={editProjectName}
+                  onChange={(e) => setEditProjectName(e.target.value)}
+                  placeholder="Enter project name"
+                  className="w-full px-3 py-2 bg-app border border-default rounded-md text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  autoFocus
+                  disabled={isUpdatingProject}
+                />
+              </div>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowEditProjectModal(false)}
+                  className="px-4 py-2 text-secondary hover:text-primary transition-colors"
+                  disabled={isUpdatingProject}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!editProjectName.trim() || isUpdatingProject}
+                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-800 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium transition-colors"
+                >
+                  {isUpdatingProject ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-surface border border-default rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-red-400 mb-4">
+              Delete Project
+            </h3>
+            <p className="text-secondary mb-6">
+              Are you sure you want to delete "{project?.name}"? This action
+              cannot be undone and will delete all views, issues, and associated
+              data.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 text-secondary hover:text-primary transition-colors"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteProject}
+                disabled={isDeleting}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium transition-colors"
+              >
+                {isDeleting ? "Deleting..." : "Delete Project"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit View Modal */}
+      {editingViewId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-surface border border-default rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-primary mb-4">
+              Edit View
+            </h3>
+            <form onSubmit={handleSubmitEditView}>
+              <div className="mb-4">
+                <label
+                  htmlFor="editViewName"
+                  className="block text-sm font-medium text-secondary mb-2"
+                >
+                  View Name
+                </label>
+                <input
+                  id="editViewName"
+                  type="text"
+                  value={editViewName}
+                  onChange={(e) => setEditViewName(e.target.value)}
+                  placeholder="e.g., Roadmap"
+                  className="w-full px-3 py-2 bg-app border border-default rounded-md text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  autoFocus
+                  disabled={isUpdatingView}
+                />
+              </div>
+              <div className="mb-4">
+                <label
+                  htmlFor="editViewTag"
+                  className="block text-sm font-medium text-secondary mb-2"
+                >
+                  Short Tag
+                </label>
+                <input
+                  id="editViewTag"
+                  type="text"
+                  value={editViewTag}
+                  onChange={(e) =>
+                    setEditViewTag(e.target.value.toUpperCase().slice(0, 10))
+                  }
+                  placeholder="e.g., RDM"
+                  maxLength={10}
+                  className="w-full px-3 py-2 bg-app border border-default rounded-md text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent font-mono"
+                  disabled={isUpdatingView}
+                />
+              </div>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setEditingViewId(null)}
+                  className="px-4 py-2 text-secondary hover:text-primary transition-colors"
+                  disabled={isUpdatingView}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={
+                    !editViewName.trim() ||
+                    !editViewTag.trim() ||
+                    isUpdatingView
+                  }
+                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-800 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium transition-colors"
+                >
+                  {isUpdatingView ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </AppLayout>
   );

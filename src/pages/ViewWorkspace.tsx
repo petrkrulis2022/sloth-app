@@ -11,6 +11,8 @@ import {
   getCurrentSession,
   getIssues,
   createIssue,
+  updateIssue,
+  deleteIssue,
 } from "@/services";
 import type { Project, View, Issue } from "@/types";
 
@@ -27,6 +29,10 @@ export function ViewWorkspace() {
   const [showCreateIssueModal, setShowCreateIssueModal] = useState(false);
   const [newIssueName, setNewIssueName] = useState("");
   const [newIssueDescription, setNewIssueDescription] = useState("");
+  const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
+  const [editIssueName, setEditIssueName] = useState("");
+  const [editIssueDescription, setEditIssueDescription] = useState("");
+  const [isUpdatingIssue, setIsUpdatingIssue] = useState(false);
   const session = getCurrentSession();
 
   // Fetch view data
@@ -124,6 +130,48 @@ export function ViewWorkspace() {
 
   const handleSelectIssue = (issueId: string) => {
     navigate(`/issue/${issueId}`);
+  };
+
+  const handleEditIssue = (issue: Issue) => {
+    setEditingIssue(issue);
+    setEditIssueName(issue.name);
+    setEditIssueDescription(issue.description || "");
+  };
+
+  const handleSubmitEditIssue = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingIssue || !editIssueName.trim()) return;
+
+    setIsUpdatingIssue(true);
+    const result = await updateIssue(editingIssue.id, {
+      name: editIssueName.trim(),
+      description: editIssueDescription.trim() || null,
+    });
+
+    if (result.success && result.data) {
+      setIssues((prev) =>
+        prev.map((i) => (i.id === editingIssue.id ? result.data! : i))
+      );
+      addToast("success", "Issue updated successfully");
+      setEditingIssue(null);
+    } else {
+      addToast("error", result.message || "Failed to update issue");
+    }
+
+    setIsUpdatingIssue(false);
+  };
+
+  const handleDeleteIssue = async (issueId: string) => {
+    if (!confirm("Are you sure you want to delete this issue?")) return;
+
+    const result = await deleteIssue(issueId);
+
+    if (result.success) {
+      setIssues((prev) => prev.filter((i) => i.id !== issueId));
+      addToast("success", "Issue deleted successfully");
+    } else {
+      addToast("error", result.message || "Failed to delete issue");
+    }
   };
 
   const handleSelectProject = (projectId: string) => {
@@ -234,12 +282,12 @@ export function ViewWorkspace() {
               </button>
             </div>
           ) : (
-            <div className="bg-surface rounded-lg border border-default p-6">
-              <p className="text-secondary text-sm">
-                Issues are now displayed in the top navigation bar. Click on any
-                issue to view its details.
-              </p>
-            </div>
+            <IssueList
+              issues={topLevelIssues}
+              onSelect={handleSelectIssue}
+              onEdit={handleEditIssue}
+              onDelete={handleDeleteIssue}
+            />
           )}
         </div>
 
@@ -304,6 +352,71 @@ export function ViewWorkspace() {
                   className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-800 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium transition-colors"
                 >
                   Create Issue
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Issue Modal */}
+      {editingIssue && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-surface border border-default rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-primary mb-4">
+              Edit Issue
+            </h3>
+            <form onSubmit={handleSubmitEditIssue}>
+              <div className="mb-4">
+                <label
+                  htmlFor="editIssueName"
+                  className="block text-sm font-medium text-secondary mb-2"
+                >
+                  Issue Name
+                </label>
+                <input
+                  id="editIssueName"
+                  type="text"
+                  value={editIssueName}
+                  onChange={(e) => setEditIssueName(e.target.value)}
+                  placeholder="Enter issue name"
+                  className="w-full px-3 py-2 bg-app border border-default rounded-md text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  autoFocus
+                  disabled={isUpdatingIssue}
+                />
+              </div>
+              <div className="mb-4">
+                <label
+                  htmlFor="editIssueDescription"
+                  className="block text-sm font-medium text-secondary mb-2"
+                >
+                  Description
+                </label>
+                <textarea
+                  id="editIssueDescription"
+                  value={editIssueDescription}
+                  onChange={(e) => setEditIssueDescription(e.target.value)}
+                  placeholder="Describe the issue..."
+                  rows={4}
+                  className="w-full px-3 py-2 bg-app border border-default rounded-md text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
+                  disabled={isUpdatingIssue}
+                />
+              </div>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setEditingIssue(null)}
+                  className="px-4 py-2 text-secondary hover:text-primary transition-colors"
+                  disabled={isUpdatingIssue}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!editIssueName.trim() || isUpdatingIssue}
+                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-800 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium transition-colors"
+                >
+                  {isUpdatingIssue ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </form>
