@@ -505,7 +505,7 @@ export function ProjectDetail() {
                 className="w-full px-3 py-2 bg-app border border-default rounded-md text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
               />
               <div className="flex justify-end">
-                <button 
+                <button
                   onClick={handleSaveNotes}
                   disabled={isSavingNotes}
                   className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
