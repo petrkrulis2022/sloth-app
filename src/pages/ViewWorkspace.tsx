@@ -668,10 +668,7 @@ export function ViewWorkspace() {
                 <label className="block text-sm font-medium text-secondary mb-1">
                   Icon
                 </label>
-                <IconPicker
-                  value={editViewIcon}
-                  onChange={setEditViewIcon}
-                />
+                <IconPicker value={editViewIcon} onChange={setEditViewIcon} />
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button
@@ -683,7 +680,11 @@ export function ViewWorkspace() {
                 </button>
                 <button
                   type="submit"
-                  disabled={!editViewName.trim() || !editViewTag.trim() || isUpdatingView}
+                  disabled={
+                    !editViewName.trim() ||
+                    !editViewTag.trim() ||
+                    isUpdatingView
+                  }
                   className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-800 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium transition-colors"
                 >
                   {isUpdatingView ? "Saving..." : "Save Changes"}
@@ -698,10 +699,12 @@ export function ViewWorkspace() {
       {showDeleteViewConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-surface border border-default rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-medium text-red-400 mb-4">Delete View</h3>
+            <h3 className="text-lg font-medium text-red-400 mb-4">
+              Delete View
+            </h3>
             <p className="text-secondary mb-6">
-              Are you sure you want to delete this view? This will also delete all issues
-              in this view. This action cannot be undone.
+              Are you sure you want to delete this view? This will also delete
+              all issues in this view. This action cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
               <button

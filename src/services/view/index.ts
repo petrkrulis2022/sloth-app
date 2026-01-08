@@ -4,6 +4,7 @@ export {
   createView,
   updateView,
   deleteView,
+  updateViewPositions,
   hasViewAccess,
   validateViewName,
   validateViewTag,

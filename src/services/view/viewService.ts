@@ -28,6 +28,8 @@ function toView(dbView: {
   project_id: string;
   name: string;
   tag: string;
+  icon?: string | null;
+  position?: number;
   chat_session_id: string | null;
   chat_session_name: string | null;
   ai_model: string | null;
@@ -40,6 +42,8 @@ function toView(dbView: {
     projectId: dbView.project_id,
     name: dbView.name,
     tag: dbView.tag,
+    icon: dbView.icon || null,
+    position: dbView.position || 0,
     chatSessionId: dbView.chat_session_id,
     chatSessionName: dbView.chat_session_name,
     aiModel: dbView.ai_model || "sonar-pro",
@@ -86,7 +90,8 @@ export async function getViews(
     const { data, error } = await db
       .from("views")
       .select("*")
-      .eq("project_id", projectId);
+      .eq("project_id", projectId)
+      .order("position", { ascending: true });
 
     if (error) throw error;
 
@@ -187,6 +192,17 @@ export async function createView(
       };
     }
 
+    // Get the max position for this project
+    const { data: maxPositionView } = await db
+      .from("views")
+      .select("position")
+      .eq("project_id", projectId)
+      .order("position", { ascending: false })
+      .limit(1)
+      .single();
+
+    const nextPosition = maxPositionView ? maxPositionView.position + 1 : 0;
+
     const { data, error } = await db
       .from("views")
       .insert({
@@ -194,6 +210,7 @@ export async function createView(
         name: name.trim(),
         tag: tag.trim(),
         icon: icon || null,
+        position: nextPosition,
       })
       .select()
       .single();
@@ -374,6 +391,34 @@ export async function hasViewAccess(
     return !!collab;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Updates positions of multiple views (for reordering)
+ */
+export async function updateViewPositions(
+  viewPositions: Array<{ id: string; position: number }>
+): Promise<ViewResponse<void>> {
+  try {
+    // Update each view's position
+    const updates = viewPositions.map(({ id, position }) =>
+      db
+        .from("views")
+        .update({ position, updated_at: new Date().toISOString() })
+        .eq("id", id)
+    );
+
+    await Promise.all(updates);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Update view positions error:", error);
+    return {
+      success: false,
+      error: "UNKNOWN_ERROR",
+      message: "Failed to update view positions.",
+    };
   }
 }
 

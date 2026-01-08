@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { useCommand } from "@/contexts";
@@ -14,6 +14,7 @@ interface AppLayoutProps {
   activeViewId?: string;
   onSelectView?: (viewId: string) => void;
   onCreateView?: () => void;
+  onReorderViews?: (views: View[]) => void;
 }
 
 export function AppLayout({
@@ -26,9 +27,66 @@ export function AppLayout({
   activeViewId,
   onSelectView,
   onCreateView,
+  onReorderViews,
 }: AppLayoutProps) {
   const navigate = useNavigate();
   const { openCommandPalette, appContext } = useCommand();
+  const [draggedViewId, setDraggedViewId] = useState<string | null>(null);
+  const [dragOverViewId, setDragOverViewId] = useState<string | null>(null);
+
+  const handleDragStart = (viewId: string) => {
+    setDraggedViewId(viewId);
+  };
+
+  const handleDragOver = (e: React.DragEvent, viewId: string) => {
+    e.preventDefault();
+    if (draggedViewId && draggedViewId !== viewId) {
+      setDragOverViewId(viewId);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverViewId(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetViewId: string) => {
+    e.preventDefault();
+    
+    if (!draggedViewId || draggedViewId === targetViewId || !onReorderViews) {
+      setDraggedViewId(null);
+      setDragOverViewId(null);
+      return;
+    }
+
+    const draggedIndex = views.findIndex((v) => v.id === draggedViewId);
+    const targetIndex = views.findIndex((v) => v.id === targetViewId);
+
+    if (draggedIndex === -1 || targetIndex === -1) {
+      setDraggedViewId(null);
+      setDragOverViewId(null);
+      return;
+    }
+
+    // Reorder the views array
+    const newViews = [...views];
+    const [draggedView] = newViews.splice(draggedIndex, 1);
+    newViews.splice(targetIndex, 0, draggedView);
+
+    // Update positions
+    const updatedViews = newViews.map((view, index) => ({
+      ...view,
+      position: index,
+    }));
+
+    onReorderViews(updatedViews);
+    setDraggedViewId(null);
+    setDragOverViewId(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedViewId(null);
+    setDragOverViewId(null);
+  };
 
   // Get context-specific shortcut hint
   const getCreateShortcutHint = () => {
@@ -77,11 +135,27 @@ export function AppLayout({
                   {views.map((view) => (
                     <button
                       key={view.id}
+                      draggable={!!onReorderViews}
+                      onDragStart={() => handleDragStart(view.id)}
+                      onDragOver={(e) => handleDragOver(e, view.id)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, view.id)}
+                      onDragEnd={handleDragEnd}
                       onClick={() => onSelectView?.(view.id)}
-                      className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
+                      className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap ${
                         activeViewId === view.id
                           ? "bg-teal-600 text-white"
                           : "bg-app hover:bg-surface-hover text-secondary hover:text-primary border border-default"
+                      } ${
+                        draggedViewId === view.id
+                          ? "opacity-50"
+                          : ""
+                      } ${
+                        dragOverViewId === view.id
+                          ? "border-teal-500 border-2"
+                          : ""
+                      } ${
+                        onReorderViews ? "cursor-move" : ""
                       }`}
                     >
                       <span className="text-lg">{view.icon || "📋"}</span>

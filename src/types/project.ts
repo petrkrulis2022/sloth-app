@@ -36,6 +36,7 @@ export interface View {
   name: string;
   tag: string;
   icon: string | null;
+  position: number;
   // Chat session configuration
   chatSessionId: string | null;
   chatSessionName: string | null;

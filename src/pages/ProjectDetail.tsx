@@ -19,6 +19,7 @@ import {
   deleteProject,
   updateView,
   deleteView,
+  updateViewPositions,
 } from "@/services";
 import type { Project, View } from "@/types";
 
@@ -291,6 +292,27 @@ export function ProjectDetail() {
     setDeletingViewId(null);
   };
 
+  const handleReorderViews = async (reorderedViews: View[]) => {
+    // Optimistically update UI
+    setViews(reorderedViews);
+
+    // Update positions in database
+    const viewPositions = reorderedViews.map((view) => ({
+      id: view.id,
+      position: view.position,
+    }));
+
+    const result = await updateViewPositions(viewPositions);
+
+    if (result.success) {
+      addToast("success", "Views reordered");
+    } else {
+      // Revert on error
+      fetchProjectData();
+      addToast("error", result.message || "Failed to reorder views");
+    }
+  };
+
   // Set up context and keyboard shortcut handler
   useEffect(() => {
     setAppContext("project");
@@ -342,6 +364,7 @@ export function ProjectDetail() {
       onSelectProject={handleSelectProject}
       views={views}
       onSelectView={handleSelectView}
+      onReorderViews={handleReorderViews}
     >
       <div className="flex gap-6 h-full">
         {/* Main content area */}
