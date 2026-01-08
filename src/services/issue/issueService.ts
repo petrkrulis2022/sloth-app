@@ -28,6 +28,7 @@ function toIssue(dbIssue: {
   name: string;
   issue_id: string | null;
   description: string | null;
+  development_notes?: string | null;
   status?: string;
   created_by: string;
   created_at: string;
@@ -40,6 +41,7 @@ function toIssue(dbIssue: {
     name: dbIssue.name,
     issueId: dbIssue.issue_id,
     description: dbIssue.description,
+    developmentNotes: dbIssue.development_notes || null,
     status: (dbIssue.status as any) || "not-started",
     createdBy: dbIssue.created_by,
     createdAt: new Date(dbIssue.created_at),
@@ -257,7 +259,7 @@ export async function createSubIssue(
  */
 export async function updateIssue(
   issueId: string,
-  updates: { name?: string; issueId?: string | null; description?: string | null; status?: string }
+  updates: { name?: string; issueId?: string | null; description?: string | null; developmentNotes?: string | null; status?: string }
 ): Promise<IssueResponse<Issue>> {
   if (updates.name !== undefined && !validateIssueName(updates.name)) {
     return {
@@ -287,6 +289,8 @@ export async function updateIssue(
     if (updates.issueId !== undefined) updateData.issue_id = updates.issueId?.trim() || null;
     if (updates.description !== undefined)
       updateData.description = updates.description?.trim() || null;
+    if (updates.developmentNotes !== undefined)
+      updateData.development_notes = updates.developmentNotes?.trim() || null;
     if (updates.status !== undefined) updateData.status = updates.status;
 
     const { data, error } = await db

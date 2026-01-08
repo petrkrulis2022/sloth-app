@@ -55,6 +55,7 @@ export interface Issue {
   name: string;
   issueId: string | null;
   description: string | null;
+  developmentNotes: string | null;
   status: IssueStatus;
   createdBy: string;
   createdAt: Date;
