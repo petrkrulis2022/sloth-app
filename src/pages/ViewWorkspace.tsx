@@ -123,8 +123,6 @@ export function ViewWorkspace() {
       session.userId,
       newIssueId || null
     );
-      session.userId
-    );
 
     if (result.success && result.data) {
       // Replace optimistic issue with real one
