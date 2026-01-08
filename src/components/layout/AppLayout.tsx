@@ -13,6 +13,7 @@ interface AppLayoutProps {
   views?: View[];
   activeViewId?: string;
   onSelectView?: (viewId: string) => void;
+  onCreateView?: () => void;
 }
 
 export function AppLayout({
@@ -24,6 +25,7 @@ export function AppLayout({
   views = [],
   activeViewId,
   onSelectView,
+  onCreateView,
 }: AppLayoutProps) {
   const navigate = useNavigate();
   const { openCommandPalette, appContext } = useCommand();
@@ -69,25 +71,50 @@ export function AppLayout({
             </h1>
 
             {/* Horizontal Views List */}
-            {views.length > 0 && (
+            {(views.length > 0 || onCreateView) && (
               <div className="flex-1 min-w-0 ml-6">
                 <div className="flex items-center gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-charcoal-700 scrollbar-track-transparent pb-1">
                   {views.map((view) => (
                     <button
                       key={view.id}
                       onClick={() => onSelectView?.(view.id)}
-                      className={`flex-shrink-0 flex flex-col items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
+                      className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
                         activeViewId === view.id
                           ? "bg-teal-600 text-white"
                           : "bg-app hover:bg-surface-hover text-secondary hover:text-primary border border-default"
                       }`}
                     >
-                      <span>{view.name}</span>
-                      <span className="text-xs font-mono opacity-75">
-                        {view.tag}
-                      </span>
+                      <span className="text-lg">{view.icon || "📋"}</span>
+                      <div className="flex flex-col items-start">
+                        <span>{view.name}</span>
+                        <span className="text-xs font-mono opacity-75">
+                          {view.tag}
+                        </span>
+                      </div>
                     </button>
                   ))}
+                  {onCreateView && (
+                    <button
+                      onClick={onCreateView}
+                      className="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium bg-app hover:bg-surface-hover text-secondary hover:text-primary border border-default border-dashed transition-colors whitespace-nowrap"
+                      title="Create New View"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 4v16m8-8H4"
+                        />
+                      </svg>
+                      <span>Create View</span>
+                    </button>
+                  )}
                 </div>
               </div>
             )}

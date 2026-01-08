@@ -34,6 +34,7 @@ export interface View {
   projectId: string;
   name: string;
   tag: string;
+  icon: string | null;
   // Chat session configuration
   chatSessionId: string | null;
   chatSessionName: string | null;

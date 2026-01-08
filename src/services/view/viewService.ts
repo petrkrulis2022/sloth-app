@@ -137,7 +137,8 @@ export async function getView(viewId: string): Promise<ViewResponse<View>> {
 export async function createView(
   projectId: string,
   name: string,
-  tag: string
+  tag: string,
+  icon?: string | null
 ): Promise<ViewResponse<View>> {
   if (!validateViewName(name)) {
     return {
@@ -175,7 +176,7 @@ export async function createView(
       .from("views")
       .select("id")
       .eq("project_id", projectId)
-      .eq("tag", tag.trim().toUpperCase())
+      .eq("tag", tag.trim())
       .single();
 
     if (existingTag) {
@@ -191,7 +192,8 @@ export async function createView(
       .insert({
         project_id: projectId,
         name: name.trim(),
-        tag: tag.trim().toUpperCase(),
+        tag: tag.trim(),
+        icon: icon || null,
       })
       .select()
       .single();
@@ -220,7 +222,7 @@ export async function createView(
  */
 export async function updateView(
   viewId: string,
-  updates: { name?: string; tag?: string }
+  updates: { name?: string; tag?: string; icon?: string | null }
 ): Promise<ViewResponse<View>> {
   if (updates.name !== undefined && !validateViewName(updates.name)) {
     return {
@@ -254,7 +256,7 @@ export async function updateView(
     }
 
     if (updates.tag) {
-      const normalizedTag = updates.tag.trim().toUpperCase();
+      const normalizedTag = updates.tag.trim();
       const { data: duplicateTag } = await db
         .from("views")
         .select("id")
@@ -272,10 +274,10 @@ export async function updateView(
       }
     }
 
-    const updateData: Record<string, string> = {};
+    const updateData: Record<string, string | null> = {};
     if (updates.name !== undefined) updateData.name = updates.name.trim();
-    if (updates.tag !== undefined)
-      updateData.tag = updates.tag.trim().toUpperCase();
+    if (updates.tag !== undefined) updateData.tag = updates.tag.trim();
+    if (updates.icon !== undefined) updateData.icon = updates.icon;
 
     const { data, error } = await db
       .from("views")

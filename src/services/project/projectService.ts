@@ -51,6 +51,7 @@ function toView(dbView: {
   project_id: string;
   name: string;
   tag: string;
+  icon: string | null;
   chat_session_id: string | null;
   chat_session_name: string | null;
   ai_model: string | null;
@@ -63,6 +64,7 @@ function toView(dbView: {
     projectId: dbView.project_id,
     name: dbView.name,
     tag: dbView.tag,
+    icon: dbView.icon,
     chatSessionId: dbView.chat_session_id,
     chatSessionName: dbView.chat_session_name,
     aiModel: dbView.ai_model || "sonar-pro",

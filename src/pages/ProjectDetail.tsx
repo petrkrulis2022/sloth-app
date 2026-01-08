@@ -5,6 +5,7 @@ import { InviteCollaboratorModal } from "@/components/invitation";
 import { DocumentsBox } from "@/components/document";
 import { LinksBox } from "@/components/link";
 import { AIChatBox } from "@/components/ai";
+import { IconPicker } from "@/components/view";
 import { useCommand } from "@/contexts";
 import { useToast } from "@/components/ui";
 import {
@@ -36,6 +37,7 @@ export function ProjectDetail() {
   const [isCopying, setIsCopying] = useState(false);
   const [newViewName, setNewViewName] = useState("");
   const [newViewTag, setNewViewTag] = useState("");
+  const [newViewIcon, setNewViewIcon] = useState<string | null>("📋");
   const [isCreatingView, setIsCreatingView] = useState(false);
   const [showEditProjectModal, setShowEditProjectModal] = useState(false);
   const [editProjectName, setEditProjectName] = useState("");
@@ -45,6 +47,7 @@ export function ProjectDetail() {
   const [editingViewId, setEditingViewId] = useState<string | null>(null);
   const [editViewName, setEditViewName] = useState("");
   const [editViewTag, setEditViewTag] = useState("");
+  const [editViewIcon, setEditViewIcon] = useState<string | null>(null);
   const [isUpdatingView, setIsUpdatingView] = useState(false);
   const [deletingViewId, setDeletingViewId] = useState<string | null>(null);
 
@@ -92,6 +95,7 @@ export function ProjectDetail() {
     setShowCreateViewModal(true);
     setNewViewName("");
     setNewViewTag("");
+    setNewViewIcon("📋");
   }, []);
 
   const handleSubmitCreateView = async (e: React.FormEvent) => {
@@ -107,6 +111,7 @@ export function ProjectDetail() {
       projectId: id,
       name: newViewName,
       tag: newViewTag,
+      icon: newViewIcon,
       chatSessionId: null,
       chatSessionName: null,
       aiModel: "sonar-deep-research",
@@ -118,8 +123,9 @@ export function ProjectDetail() {
     setShowCreateViewModal(false);
     setNewViewName("");
     setNewViewTag("");
+    setNewViewIcon("📋");
 
-    const result = await createView(id, newViewName, newViewTag);
+    const result = await createView(id, newViewName, newViewTag, newViewIcon);
 
     if (result.success && result.data) {
       // Replace optimistic view with real one
@@ -223,6 +229,7 @@ export function ProjectDetail() {
     setEditingViewId(view.id);
     setEditViewName(view.name);
     setEditViewTag(view.tag);
+    setEditViewIcon(view.icon);
   };
 
   const handleSubmitEditView = async (e: React.FormEvent) => {
@@ -233,6 +240,7 @@ export function ProjectDetail() {
     const result = await updateView(editingViewId, {
       name: editViewName.trim(),
       tag: editViewTag.trim(),
+      icon: editViewIcon,
     });
 
     if (result.success && result.data) {
@@ -327,6 +335,25 @@ export function ProjectDetail() {
                 {project.name}
               </h2>
               <div className="flex gap-2">
+                <button
+                  onClick={handleCreateView}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-surface hover:bg-surface-hover border border-default rounded-md text-sm font-medium text-secondary hover:text-primary transition-colors"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4v16m8-8H4"
+                    />
+                  </svg>
+                  Create View
+                </button>
                 <button
                   onClick={handleEditProject}
                   className="inline-flex items-center gap-2 px-3 py-1.5 bg-surface hover:bg-surface-hover border border-default rounded-md text-sm font-medium text-secondary hover:text-primary transition-colors"
@@ -433,102 +460,39 @@ export function ProjectDetail() {
             />
           </div>
 
-          {/* Views section */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-primary">Views</h3>
-              <button
-                onClick={handleCreateView}
-                className="inline-flex items-center gap-2 px-3 py-1.5 bg-surface hover:bg-surface-hover border border-default hover:border-hover text-secondary hover:text-primary rounded-md text-sm transition-colors"
+          {/* Project Notes/Comments Section */}
+          <div className="bg-surface border border-default rounded-lg p-4">
+            <h3 className="text-sm font-medium text-secondary uppercase tracking-wider mb-3 flex items-center gap-2">
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
-                Create View
-              </button>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
+                />
+              </svg>
+              Project Notes
+            </h3>
+            <div className="space-y-3">
+              <textarea
+                placeholder="Add notes about this project..."
+                rows={4}
+                className="w-full px-3 py-2 bg-app border border-default rounded-md text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
+              />
+              <div className="flex justify-end">
+                <button className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-md text-sm font-medium transition-colors">
+                  Add Note
+                </button>
+              </div>
+              <div className="text-xs text-muted italic">
+                Note: Full comments are available on individual issues
+              </div>
             </div>
-
-            {views.length === 0 ? (
-              <div className="bg-surface rounded-lg border border-default p-4 text-center">
-                <p className="text-sm text-muted">No views yet</p>
-              </div>
-            ) : (
-              <div className="grid gap-3">
-                {views.map((view) => (
-                  <div
-                    key={view.id}
-                    className="bg-surface border border-default rounded-lg p-3 hover:border-hover transition-colors"
-                  >
-                    <div className="flex items-center justify-between">
-                      <button
-                        onClick={() => handleSelectView(view.id)}
-                        className="flex items-center gap-3 flex-1 text-left hover:opacity-80 transition-opacity"
-                      >
-                        <div className="flex flex-col gap-1">
-                          <h3 className="text-base font-medium text-primary">
-                            {view.name}
-                          </h3>
-                          <span className="text-xs font-mono text-muted">
-                            {view.tag}
-                          </span>
-                        </div>
-                      </button>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={(e) => handleEditView(view, e)}
-                          className="p-2 hover:bg-surface-hover rounded transition-colors"
-                          title="Edit view"
-                        >
-                          <svg
-                            className="w-4 h-4 text-secondary hover:text-primary"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                            />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={(e) => handleDeleteView(view.id, e)}
-                          disabled={deletingViewId === view.id}
-                          className="p-2 hover:bg-red-900/30 rounded transition-colors disabled:opacity-50"
-                          title="Delete view"
-                        >
-                          <svg
-                            className="w-4 h-4 text-secondary hover:text-red-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </div>
 
@@ -581,12 +545,20 @@ export function ProjectDetail() {
                   id="viewTag"
                   type="text"
                   value={newViewTag}
-                  onChange={(e) =>
-                    setNewViewTag(e.target.value.toUpperCase().slice(0, 10))
-                  }
+                  onChange={(e) => setNewViewTag(e.target.value.slice(0, 10))}
                   placeholder="e.g., RDM"
                   maxLength={10}
                   className="w-full px-3 py-2 bg-app border border-default rounded-md text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent font-mono"
+                  disabled={isCreatingView}
+                />
+              </div>
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-secondary mb-2">
+                  Icon
+                </label>
+                <IconPicker
+                  value={newViewIcon}
+                  onChange={setNewViewIcon}
                   disabled={isCreatingView}
                 />
               </div>
@@ -740,12 +712,20 @@ export function ProjectDetail() {
                   id="editViewTag"
                   type="text"
                   value={editViewTag}
-                  onChange={(e) =>
-                    setEditViewTag(e.target.value.toUpperCase().slice(0, 10))
-                  }
+                  onChange={(e) => setEditViewTag(e.target.value.slice(0, 10))}
                   placeholder="e.g., RDM"
                   maxLength={10}
                   className="w-full px-3 py-2 bg-app border border-default rounded-md text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent font-mono"
+                  disabled={isUpdatingView}
+                />
+              </div>
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-secondary mb-2">
+                  Icon
+                </label>
+                <IconPicker
+                  value={editViewIcon}
+                  onChange={setEditViewIcon}
                   disabled={isUpdatingView}
                 />
               </div>
