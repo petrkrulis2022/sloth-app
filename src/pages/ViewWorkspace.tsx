@@ -30,9 +30,11 @@ export function ViewWorkspace() {
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateIssueModal, setShowCreateIssueModal] = useState(false);
   const [newIssueName, setNewIssueName] = useState("");
+  const [newIssueId, setNewIssueId] = useState("");
   const [newIssueDescription, setNewIssueDescription] = useState("");
   const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
   const [editIssueName, setEditIssueName] = useState("");
+  const [editIssueId, setEditIssueId] = useState("");
   const [editIssueDescription, setEditIssueDescription] = useState("");
   const [isUpdatingIssue, setIsUpdatingIssue] = useState(false);
   const session = getCurrentSession();
@@ -80,6 +82,7 @@ export function ViewWorkspace() {
   const handleCreateIssue = useCallback(() => {
     setShowCreateIssueModal(true);
     setNewIssueName("");
+    setNewIssueId("");
     setNewIssueDescription("");
   }, []);
 
@@ -100,6 +103,7 @@ export function ViewWorkspace() {
       viewId: id,
       parentId: null,
       name: newIssueName,
+      issueId: newIssueId || null,
       description: newIssueDescription || null,
       status: "not-started",
       createdBy: session.userId,
@@ -109,12 +113,16 @@ export function ViewWorkspace() {
     setIssues((prev) => [...prev, optimisticIssue]);
     setShowCreateIssueModal(false);
     setNewIssueName("");
+    setNewIssueId("");
     setNewIssueDescription("");
 
     const result = await createIssue(
       id,
       newIssueName,
       newIssueDescription || null,
+      session.userId,
+      newIssueId || null
+    );
       session.userId
     );
 
@@ -138,6 +146,7 @@ export function ViewWorkspace() {
   const handleEditIssue = (issue: Issue) => {
     setEditingIssue(issue);
     setEditIssueName(issue.name);
+    setEditIssueId(issue.issueId || "");
     setEditIssueDescription(issue.description || "");
   };
 
@@ -148,6 +157,7 @@ export function ViewWorkspace() {
     setIsUpdatingIssue(true);
     const result = await updateIssue(editingIssue.id, {
       name: editIssueName.trim(),
+      issueId: editIssueId.trim() || null,
       description: editIssueDescription.trim() || null,
     });
 
@@ -389,6 +399,22 @@ export function ViewWorkspace() {
               </div>
               <div className="mb-4">
                 <label
+                  htmlFor="issueId"
+                  className="block text-sm font-medium text-secondary mb-2"
+                >
+                  Issue ID (Optional)
+                </label>
+                <input
+                  id="issueId"
+                  type="text"
+                  value={newIssueId}
+                  onChange={(e) => setNewIssueId(e.target.value)}
+                  placeholder="e.g., MVP-001, DEV-001"
+                  className="w-full px-3 py-2 bg-app border border-default rounded-md text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent font-mono"
+                />
+              </div>
+              <div className="mb-4">
+                <label
                   htmlFor="issueDescription"
                   className="block text-sm font-medium text-secondary mb-2"
                 >
@@ -447,6 +473,23 @@ export function ViewWorkspace() {
                   placeholder="Enter issue name"
                   className="w-full px-3 py-2 bg-app border border-default rounded-md text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   autoFocus
+                  disabled={isUpdatingIssue}
+                />
+              </div>
+              <div className="mb-4">
+                <label
+                  htmlFor="editIssueId"
+                  className="block text-sm font-medium text-secondary mb-2"
+                >
+                  Issue ID (Optional)
+                </label>
+                <input
+                  id="editIssueId"
+                  type="text"
+                  value={editIssueId}
+                  onChange={(e) => setEditIssueId(e.target.value)}
+                  placeholder="e.g., MVP-001, DEV-001"
+                  className="w-full px-3 py-2 bg-app border border-default rounded-md text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent font-mono"
                   disabled={isUpdatingIssue}
                 />
               </div>

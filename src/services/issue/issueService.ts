@@ -26,6 +26,7 @@ function toIssue(dbIssue: {
   view_id: string;
   parent_id: string | null;
   name: string;
+  issue_id: string | null;
   description: string | null;
   status?: string;
   created_by: string;
@@ -37,6 +38,7 @@ function toIssue(dbIssue: {
     viewId: dbIssue.view_id,
     parentId: dbIssue.parent_id,
     name: dbIssue.name,
+    issueId: dbIssue.issue_id,
     description: dbIssue.description,
     status: (dbIssue.status as any) || "not-started",
     createdBy: dbIssue.created_by,
@@ -129,7 +131,8 @@ export async function createIssue(
   viewId: string,
   name: string,
   description: string | null,
-  createdBy: string
+  createdBy: string,
+  issueId?: string | null
 ): Promise<IssueResponse<Issue>> {
   if (!validateIssueName(name)) {
     return {
@@ -159,6 +162,7 @@ export async function createIssue(
       .insert({
         view_id: viewId,
         name: name.trim(),
+        issue_id: issueId?.trim() || null,
         description: description?.trim() || null,
         status: "not-started",
         created_by: createdBy,
@@ -253,7 +257,7 @@ export async function createSubIssue(
  */
 export async function updateIssue(
   issueId: string,
-  updates: { name?: string; description?: string | null; status?: string }
+  updates: { name?: string; issueId?: string | null; description?: string | null; status?: string }
 ): Promise<IssueResponse<Issue>> {
   if (updates.name !== undefined && !validateIssueName(updates.name)) {
     return {
@@ -280,6 +284,7 @@ export async function updateIssue(
 
     const updateData: Record<string, string | null> = {};
     if (updates.name !== undefined) updateData.name = updates.name.trim();
+    if (updates.issueId !== undefined) updateData.issue_id = updates.issueId?.trim() || null;
     if (updates.description !== undefined)
       updateData.description = updates.description?.trim() || null;
     if (updates.status !== undefined) updateData.status = updates.status;

@@ -73,12 +73,19 @@ export function KanbanBoard({
                     className="bg-surface border border-default hover:border-hover rounded-lg p-3 cursor-pointer transition-colors group"
                   >
                     <div className="flex items-start justify-between gap-2 mb-2">
-                      <button
-                        onClick={() => onSelectIssue(issue.id)}
-                        className="flex-1 text-left text-sm font-medium text-primary hover:text-teal-400 transition-colors"
-                      >
-                        {issue.name}
-                      </button>
+                      <div className="flex-1">
+                        <button
+                          onClick={() => onSelectIssue(issue.id)}
+                          className="text-left text-sm font-medium text-primary hover:text-teal-400 transition-colors block"
+                        >
+                          {issue.name}
+                        </button>
+                        {issue.issueId && (
+                          <span className="text-xs font-mono text-muted mt-1 block">
+                            {issue.issueId}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={(e) => {

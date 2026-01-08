@@ -51,6 +51,7 @@ export interface Issue {
   viewId: string;
   parentId: string | null;
   name: string;
+  issueId: string | null;
   description: string | null;
   status: IssueStatus;
   createdBy: string;
