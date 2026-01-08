@@ -11,6 +11,7 @@ export interface Project {
   id: string;
   name: string;
   ownerId: string;
+  notes: string | null;
   // Perplexity Space connection
   perplexitySpaceId: string | null;
   perplexitySpaceName: string | null;

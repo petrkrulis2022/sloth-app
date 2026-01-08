@@ -50,6 +50,8 @@ export function ProjectDetail() {
   const [editViewIcon, setEditViewIcon] = useState<string | null>(null);
   const [isUpdatingView, setIsUpdatingView] = useState(false);
   const [deletingViewId, setDeletingViewId] = useState<string | null>(null);
+  const [projectNotes, setProjectNotes] = useState("");
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
 
   // Fetch project data
   const fetchProjectData = useCallback(async () => {
@@ -71,6 +73,7 @@ export function ProjectDetail() {
       return;
     }
     setProject(projectResult.data);
+    setProjectNotes(projectResult.data.notes || "");
 
     // Fetch views for this project
     const viewsResult = await getProjectViews(id);
@@ -97,6 +100,21 @@ export function ProjectDetail() {
     setNewViewTag("");
     setNewViewIcon("📋");
   }, []);
+
+  const handleSaveNotes = async () => {
+    if (!project || !id) return;
+
+    setIsSavingNotes(true);
+    const result = await updateProject(id, { notes: projectNotes });
+
+    if (result.success && result.data) {
+      setProject(result.data);
+      addToast("success", "Notes saved successfully");
+    } else {
+      addToast("error", result.message || "Failed to save notes");
+    }
+    setIsSavingNotes(false);
+  };
 
   const handleSubmitCreateView = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -480,13 +498,19 @@ export function ProjectDetail() {
             </h3>
             <div className="space-y-3">
               <textarea
+                value={projectNotes}
+                onChange={(e) => setProjectNotes(e.target.value)}
                 placeholder="Add notes about this project..."
                 rows={4}
                 className="w-full px-3 py-2 bg-app border border-default rounded-md text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
               />
               <div className="flex justify-end">
-                <button className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-md text-sm font-medium transition-colors">
-                  Add Note
+                <button 
+                  onClick={handleSaveNotes}
+                  disabled={isSavingNotes}
+                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSavingNotes ? "Saving..." : "Save Notes"}
                 </button>
               </div>
               <div className="text-xs text-muted italic">

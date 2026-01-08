@@ -25,6 +25,7 @@ function toProject(dbProject: {
   id: string;
   name: string;
   owner_id: string;
+  notes: string | null;
   perplexity_space_id: string | null;
   perplexity_space_name: string | null;
   perplexity_api_key: string | null;
@@ -35,6 +36,7 @@ function toProject(dbProject: {
     id: dbProject.id,
     name: dbProject.name,
     ownerId: dbProject.owner_id,
+    notes: dbProject.notes,
     perplexitySpaceId: dbProject.perplexity_space_id,
     perplexitySpaceName: dbProject.perplexity_space_name,
     perplexityApiKey: dbProject.perplexity_api_key,
@@ -437,6 +439,7 @@ export async function updateProject(
   projectId: string,
   updates: {
     name?: string;
+    notes?: string | null;
     perplexitySpaceId?: string | null;
     perplexitySpaceName?: string | null;
     perplexityApiKey?: string | null;
@@ -445,6 +448,7 @@ export async function updateProject(
   try {
     const dbUpdates: Record<string, unknown> = {};
     if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
     if (updates.perplexitySpaceId !== undefined)
       dbUpdates.perplexity_space_id = updates.perplexitySpaceId;
     if (updates.perplexitySpaceName !== undefined)
