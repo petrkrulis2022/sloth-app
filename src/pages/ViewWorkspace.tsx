@@ -5,6 +5,7 @@ import { KanbanBoard } from "@/components/issue";
 import { DocumentsBox } from "@/components/document";
 import { LinksBox } from "@/components/link";
 import { AIChatBox } from "@/components/ai";
+import { IconPicker } from "@/components/view";
 import { useCommand } from "@/contexts";
 import { useToast } from "@/components/ui";
 import {
@@ -15,6 +16,8 @@ import {
   createIssue,
   updateIssue,
   deleteIssue,
+  updateView,
+  deleteView,
 } from "@/services";
 import type { Project, View, Issue, IssueStatus } from "@/types";
 
@@ -37,6 +40,13 @@ export function ViewWorkspace() {
   const [editIssueId, setEditIssueId] = useState("");
   const [editIssueDescription, setEditIssueDescription] = useState("");
   const [isUpdatingIssue, setIsUpdatingIssue] = useState(false);
+  const [showEditViewModal, setShowEditViewModal] = useState(false);
+  const [editViewName, setEditViewName] = useState("");
+  const [editViewTag, setEditViewTag] = useState("");
+  const [editViewIcon, setEditViewIcon] = useState<string | null>(null);
+  const [isUpdatingView, setIsUpdatingView] = useState(false);
+  const [showDeleteViewConfirm, setShowDeleteViewConfirm] = useState(false);
+  const [isDeletingView, setIsDeletingView] = useState(false);
   const session = getCurrentSession();
 
   // Fetch view data
@@ -222,12 +232,60 @@ export function ViewWorkspace() {
     navigate("/");
   };
 
+  const handleEditViewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!view || !id || !editViewName.trim() || !editViewTag.trim()) return;
+
+    setIsUpdatingView(true);
+    const result = await updateView(id, {
+      name: editViewName.trim(),
+      tag: editViewTag.trim(),
+      icon: editViewIcon,
+    });
+
+    if (result.success && result.data) {
+      setView(result.data);
+      addToast("success", "View updated successfully");
+      setShowEditViewModal(false);
+    } else {
+      addToast("error", result.message || "Failed to update view");
+    }
+
+    setIsUpdatingView(false);
+  };
+
+  const handleDeleteViewConfirm = async () => {
+    if (!view || !id) return;
+
+    setIsDeletingView(true);
+    const result = await deleteView(id);
+
+    if (result.success) {
+      addToast("success", "View deleted successfully");
+      navigate(`/project/${view.projectId}`);
+    } else {
+      addToast("error", result.message || "Failed to delete view");
+    }
+
+    setIsDeletingView(false);
+    setShowDeleteViewConfirm(false);
+  };
+
   // Set up context and keyboard shortcut handler
   useEffect(() => {
     setAppContext("view");
     setCreateHandler(handleCreateIssue);
     return () => setCreateHandler(undefined);
   }, [setAppContext, setCreateHandler, handleCreateIssue]);
+
+  // Initialize edit view form when modal opens
+  useEffect(() => {
+    if (showEditViewModal && view) {
+      setEditViewName(view.name);
+      setEditViewTag(view.tag);
+      setEditViewIcon(view.icon);
+    }
+  }, [showEditViewModal, view]);
 
   if (isLoading) {
     return (
@@ -278,12 +336,57 @@ export function ViewWorkspace() {
         <div className="flex-1 min-w-0 space-y-6">
           {/* View Header */}
           <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h2 className="text-2xl font-semibold text-primary">
-                {view.name}
-              </h2>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{view.icon || "📋"}</span>
+                <h2 className="text-2xl font-semibold text-primary">
+                  {view.name}
+                </h2>
+                <span className="text-xs px-2 py-1 bg-teal-500/20 text-teal-400 rounded font-mono">
+                  {view.tag}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowEditViewModal(true)}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-surface hover:bg-surface-hover border border-default hover:border-hover text-secondary hover:text-primary rounded-md text-sm transition-colors"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                    />
+                  </svg>
+                  Edit View
+                </button>
+                <button
+                  onClick={() => setShowDeleteViewConfirm(true)}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-surface hover:bg-red-900/30 border border-default hover:border-red-500/50 text-secondary hover:text-red-400 rounded-md text-sm transition-colors"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
+                  </svg>
+                  Delete View
+                </button>
+              </div>
             </div>
-            <span className="text-xs font-mono text-muted">{view.tag}</span>
           </div>
 
           {/* AI Discussion Box - Full Width */}
@@ -526,6 +629,96 @@ export function ViewWorkspace() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit View Modal */}
+      {showEditViewModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-surface border border-default rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-medium text-primary mb-4">Edit View</h3>
+            <form onSubmit={handleEditViewSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-secondary mb-1">
+                  View Name
+                </label>
+                <input
+                  type="text"
+                  value={editViewName}
+                  onChange={(e) => setEditViewName(e.target.value)}
+                  className="w-full px-3 py-2 bg-app border border-default rounded-md text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  placeholder="e.g., MVP Features"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-secondary mb-1">
+                  Tag
+                </label>
+                <input
+                  type="text"
+                  value={editViewTag}
+                  onChange={(e) => setEditViewTag(e.target.value)}
+                  className="w-full px-3 py-2 bg-app border border-default rounded-md text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  placeholder="e.g., mvp"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-secondary mb-1">
+                  Icon
+                </label>
+                <IconPicker
+                  value={editViewIcon}
+                  onChange={setEditViewIcon}
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditViewModal(false)}
+                  className="px-4 py-2 bg-surface hover:bg-surface-hover border border-default text-secondary hover:text-primary rounded-md text-sm font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!editViewName.trim() || !editViewTag.trim() || isUpdatingView}
+                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-800 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium transition-colors"
+                >
+                  {isUpdatingView ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete View Confirmation Modal */}
+      {showDeleteViewConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-surface border border-default rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-medium text-red-400 mb-4">Delete View</h3>
+            <p className="text-secondary mb-6">
+              Are you sure you want to delete this view? This will also delete all issues
+              in this view. This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteViewConfirm(false)}
+                disabled={isDeletingView}
+                className="px-4 py-2 bg-surface hover:bg-surface-hover border border-default text-secondary hover:text-primary rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteViewConfirm}
+                disabled={isDeletingView}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium transition-colors"
+              >
+                {isDeletingView ? "Deleting..." : "Delete View"}
+              </button>
+            </div>
           </div>
         </div>
       )}
