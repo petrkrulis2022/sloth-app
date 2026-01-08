@@ -453,6 +453,81 @@ export function ProjectDetail() {
             </div>
           </div>
 
+          {/* Views Management Section */}
+          <div className="bg-surface border border-default rounded-lg p-4">
+            <h3 className="text-sm font-medium text-secondary uppercase tracking-wider mb-3">
+              Views
+            </h3>
+            {views.length === 0 ? (
+              <p className="text-sm text-muted italic">
+                No views yet. Create your first view above.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {views.map((view) => (
+                  <div
+                    key={view.id}
+                    className="flex items-center justify-between p-3 bg-app border border-default rounded-md hover:border-teal-500/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{view.icon || "📋"}</span>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-primary">
+                            {view.name}
+                          </span>
+                          <span className="text-xs px-2 py-0.5 bg-teal-500/20 text-teal-400 rounded">
+                            {view.tag}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleEditView(view)}
+                        className="p-1.5 hover:bg-surface-hover rounded text-secondary hover:text-primary transition-colors"
+                        title="Edit view"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => setDeletingViewId(view.id)}
+                        className="p-1.5 hover:bg-red-900/30 rounded text-secondary hover:text-red-400 transition-colors"
+                        title="Delete view"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* AI Discussion Box - Full Width */}
           <div className="bg-surface border border-default rounded-lg p-4">
             <h3 className="text-sm font-medium text-secondary uppercase tracking-wider mb-3 flex items-center gap-2">
