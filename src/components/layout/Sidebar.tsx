@@ -22,9 +22,7 @@ export function Sidebar({
           alt="Sloth.app"
           className="w-8 h-8 flex-shrink-0"
         />
-        <h1 className="text-xl font-semibold text-primary">
-          Sloth.app
-        </h1>
+        <h1 className="text-xl font-semibold text-primary">Sloth.app</h1>
       </div>
 
       {/* Projects header */}

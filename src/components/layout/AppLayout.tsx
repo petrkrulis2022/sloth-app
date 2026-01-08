@@ -119,7 +119,7 @@ export function AppLayout({
         {/* Header with views and controls */}
         <header className="flex items-center justify-between px-6 py-4 border-b border-default bg-surface">
           {/* Horizontal Views List */}
-          {(views.length > 0) && (
+          {views.length > 0 && (
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-charcoal-700 scrollbar-track-transparent pb-1">
                 {views.map((view) => (
