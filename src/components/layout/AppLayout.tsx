@@ -51,7 +51,7 @@ export function AppLayout({
 
   const handleDrop = (e: React.DragEvent, targetViewId: string) => {
     e.preventDefault();
-    
+
     if (!draggedViewId || draggedViewId === targetViewId || !onReorderViews) {
       setDraggedViewId(null);
       setDragOverViewId(null);
@@ -146,17 +146,11 @@ export function AppLayout({
                         activeViewId === view.id
                           ? "bg-teal-600 text-white"
                           : "bg-app hover:bg-surface-hover text-secondary hover:text-primary border border-default"
-                      } ${
-                        draggedViewId === view.id
-                          ? "opacity-50"
-                          : ""
-                      } ${
+                      } ${draggedViewId === view.id ? "opacity-50" : ""} ${
                         dragOverViewId === view.id
                           ? "border-teal-500 border-2"
                           : ""
-                      } ${
-                        onReorderViews ? "cursor-move" : ""
-                      }`}
+                      } ${onReorderViews ? "cursor-move" : ""}`}
                     >
                       <span className="text-lg">{view.icon || "📋"}</span>
                       <div className="flex flex-col items-start">
