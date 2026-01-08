@@ -116,80 +116,47 @@ export function AppLayout({
 
       {/* Main content area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Header with logo */}
+        {/* Header with views and controls */}
         <header className="flex items-center justify-between px-6 py-4 border-b border-default bg-surface">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <img
-              src="/sloth.svg"
-              alt="Sloth.app"
-              className="w-8 h-8 flex-shrink-0"
-            />
-            <h1 className="text-xl font-semibold text-primary flex-shrink-0">
-              Sloth.app
-            </h1>
-
-            {/* Horizontal Views List */}
-            {(views.length > 0 || onCreateView) && (
-              <div className="flex-1 min-w-0 ml-6">
-                <div className="flex items-center gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-charcoal-700 scrollbar-track-transparent pb-1">
-                  {views.map((view) => (
-                    <button
-                      key={view.id}
-                      draggable={!!onReorderViews}
-                      onDragStart={() => handleDragStart(view.id)}
-                      onDragOver={(e) => handleDragOver(e, view.id)}
-                      onDragLeave={handleDragLeave}
-                      onDrop={(e) => handleDrop(e, view.id)}
-                      onDragEnd={handleDragEnd}
-                      onClick={() => onSelectView?.(view.id)}
-                      className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap ${
-                        activeViewId === view.id
-                          ? "bg-teal-600 text-white"
-                          : "bg-app hover:bg-surface-hover text-secondary hover:text-primary border border-default"
-                      } ${draggedViewId === view.id ? "opacity-50" : ""} ${
-                        dragOverViewId === view.id
-                          ? "border-teal-500 border-2"
-                          : ""
-                      } ${onReorderViews ? "cursor-move" : ""}`}
-                    >
-                      <span className="text-lg">{view.icon || "📋"}</span>
-                      <div className="flex flex-col items-start">
-                        <span>{view.name}</span>
-                        <span className="text-xs font-mono opacity-75">
-                          {view.tag}
-                        </span>
-                      </div>
-                    </button>
-                  ))}
-                  {onCreateView && (
-                    <button
-                      onClick={onCreateView}
-                      className="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium bg-app hover:bg-surface-hover text-secondary hover:text-primary border border-default border-dashed transition-colors whitespace-nowrap"
-                      title="Create New View"
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 4v16m8-8H4"
-                        />
-                      </svg>
-                      <span>Create View</span>
-                    </button>
-                  )}
-                </div>
+          {/* Horizontal Views List */}
+          {(views.length > 0) && (
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-charcoal-700 scrollbar-track-transparent pb-1">
+                {views.map((view) => (
+                  <button
+                    key={view.id}
+                    draggable={!!onReorderViews}
+                    onDragStart={() => handleDragStart(view.id)}
+                    onDragOver={(e) => handleDragOver(e, view.id)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, view.id)}
+                    onDragEnd={handleDragEnd}
+                    onClick={() => onSelectView?.(view.id)}
+                    className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap ${
+                      activeViewId === view.id
+                        ? "bg-teal-600 text-white"
+                        : "bg-app hover:bg-surface-hover text-secondary hover:text-primary border border-default"
+                    } ${draggedViewId === view.id ? "opacity-50" : ""} ${
+                      dragOverViewId === view.id
+                        ? "border-teal-500 border-2"
+                        : ""
+                    } ${onReorderViews ? "cursor-move" : ""}`}
+                  >
+                    <span className="text-lg">{view.icon || "📋"}</span>
+                    <div className="flex flex-col items-start">
+                      <span>{view.name}</span>
+                      <span className="text-xs font-mono opacity-75">
+                        {view.tag}
+                      </span>
+                    </div>
+                  </button>
+                ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Keyboard shortcuts indicator */}
-          <div className="flex items-center gap-4 flex-shrink-0">
+          {/* Settings and Search - Vertically stacked */}
+          <div className="flex flex-col gap-2 flex-shrink-0 ml-4">
             <button
               onClick={() => navigate("/settings")}
               className="flex items-center gap-2 px-3 py-1.5 bg-app hover:bg-surface-hover border border-default rounded-md text-sm text-secondary hover:text-primary transition-colors"
@@ -220,6 +187,7 @@ export function AppLayout({
             <button
               onClick={openCommandPalette}
               className="flex items-center gap-2 px-3 py-1.5 bg-app hover:bg-surface-hover border border-default rounded-md text-sm text-secondary hover:text-primary transition-colors"
+              title="Search (⌘K)"
             >
               <svg
                 className="w-4 h-4"
@@ -239,11 +207,6 @@ export function AppLayout({
                 ⌘K
               </kbd>
             </button>
-
-            <div className="hidden md:flex items-center gap-2 text-xs text-muted">
-              <kbd className="px-1.5 py-0.5 bg-charcoal-800 rounded">C</kbd>
-              <span>{getCreateShortcutHint()}</span>
-            </div>
           </div>
         </header>
 

@@ -15,8 +15,20 @@ export function Sidebar({
 }: SidebarProps) {
   return (
     <aside className="w-64 bg-surface border-r border-default flex flex-col h-screen">
-      {/* Sidebar header */}
-      <div className="p-4 border-b border-default">
+      {/* Logo header */}
+      <div className="p-4 border-b border-default flex items-center gap-3">
+        <img
+          src="/sloth.svg"
+          alt="Sloth.app"
+          className="w-8 h-8 flex-shrink-0"
+        />
+        <h1 className="text-xl font-semibold text-primary">
+          Sloth.app
+        </h1>
+      </div>
+
+      {/* Projects header */}
+      <div className="px-4 pt-4 pb-2">
         <h2 className="text-sm font-medium text-secondary uppercase tracking-wider">
           Projects
         </h2>
