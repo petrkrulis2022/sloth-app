@@ -8,6 +8,7 @@ import {
   ProjectDetail,
   ViewWorkspace,
   IssueDetail,
+  DevelopmentPlan,
   Login,
   Signup,
   AcceptInvitation,
@@ -52,6 +53,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <IssueDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/issue/:id/development"
+        element={
+          <ProtectedRoute>
+            <DevelopmentPlan />
           </ProtectedRoute>
         }
       />

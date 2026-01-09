@@ -12,7 +12,6 @@ import {
   getIssue,
   getSubIssues,
   createSubIssue,
-  updateIssue,
   getProjects,
   getCurrentSession,
 } from "@/services";
@@ -32,10 +31,6 @@ export function IssueDetail() {
   const [newSubIssueName, setNewSubIssueName] = useState("");
   const [newSubIssueDescription, setNewSubIssueDescription] = useState("");
   const [isCreatingSubIssue, setIsCreatingSubIssue] = useState(false);
-  const [showDevelopmentSection, setShowDevelopmentSection] = useState(false);
-  const [developmentNotes, setDevelopmentNotes] = useState("");
-  const [isSavingDevelopmentNotes, setIsSavingDevelopmentNotes] =
-    useState(false);
   const session = getCurrentSession();
 
   // Fetch issue data
@@ -58,9 +53,6 @@ export function IssueDetail() {
       return;
     }
     setIssue(issueResult.data);
-
-    // Initialize development notes
-    setDevelopmentNotes(issueResult.data.developmentNotes || "");
 
     // Fetch sub-issues
     const subIssuesResult = await getSubIssues(id);
@@ -141,29 +133,6 @@ export function IssueDetail() {
     setIsCreatingSubIssue(false);
   };
 
-  const handleSaveDevelopmentNotes = async () => {
-    if (!id) return;
-
-    setIsSavingDevelopmentNotes(true);
-
-    const result = await updateIssue(id, {
-      developmentNotes: developmentNotes.trim() || null,
-    });
-
-    if (result.success && result.data) {
-      setIssue(result.data);
-      addToast("success", "Development notes saved");
-    } else {
-      addToast("error", result.message || "Failed to save development notes");
-    }
-
-    setIsSavingDevelopmentNotes(false);
-  };
-
-  const handleToggleDevelopmentSection = () => {
-    setShowDevelopmentSection(!showDevelopmentSection);
-  };
-
   const handleSelectIssue = (issueId: string) => {
     navigate(`/issue/${issueId}`);
   };
@@ -235,13 +204,34 @@ export function IssueDetail() {
             )}
           </div>
 
-          {/* Development Section */}
-          <div className="bg-surface border border-default rounded-lg">
-            <button
-              onClick={handleToggleDevelopmentSection}
-              className="w-full px-4 py-3 flex items-center justify-between hover:bg-surface-hover transition-colors"
-            >
-              <h3 className="text-sm font-medium text-secondary uppercase tracking-wider flex items-center gap-2">
+          {/* Development Plan Button */}
+          <div className="bg-surface border border-default rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium text-primary mb-1 flex items-center gap-2">
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                    />
+                  </svg>
+                  Development Plan
+                </h3>
+                <p className="text-xs text-muted">
+                  Manage technical notes and development tasks with Kanban board
+                </p>
+              </div>
+              <button
+                onClick={() => navigate(`/issue/${issue.id}/development`)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-md text-sm font-medium transition-colors"
+              >
                 <svg
                   className="w-4 h-4"
                   fill="none"
@@ -252,138 +242,18 @@ export function IssueDetail() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
                   />
                 </svg>
-                Development Plan
-              </h3>
-              <svg
-                className={`w-5 h-5 text-secondary transition-transform ${
-                  showDevelopmentSection ? "rotate-180" : ""
-                }`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </button>
-
-            {showDevelopmentSection && (
-              <div className="px-4 pb-4 space-y-4 border-t border-default pt-4">
-                {/* Development Notes */}
-                <div>
-                  <label className="block text-sm font-medium text-primary mb-2">
-                    Technical Notes & Implementation Details
-                  </label>
-                  <textarea
-                    value={developmentNotes}
-                    onChange={(e) => setDevelopmentNotes(e.target.value)}
-                    placeholder="Add technical notes, architecture decisions, implementation steps..."
-                    className="w-full px-3 py-2 bg-background border border-default rounded-md text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 min-h-[120px] resize-y"
-                  />
-                  <div className="mt-2 flex justify-end">
-                    <button
-                      onClick={handleSaveDevelopmentNotes}
-                      disabled={isSavingDevelopmentNotes}
-                      className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-600/50 text-white rounded-md text-sm font-medium transition-colors"
-                    >
-                      {isSavingDevelopmentNotes ? "Saving..." : "Save Notes"}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Development Tasks (Sub-Issues with parent_id) */}
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-sm font-medium text-primary">
-                      Development Tasks
-                    </h4>
-                    <button
-                      onClick={handleAddSubIssue}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface hover:bg-surface-hover border border-default hover:border-hover text-secondary hover:text-primary rounded text-xs transition-colors"
-                    >
-                      <svg
-                        className="w-3.5 h-3.5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 4v16m8-8H4"
-                        />
-                      </svg>
-                      Add Task
-                    </button>
-                  </div>
-
-                  {subIssues.length === 0 ? (
-                    <div className="bg-background rounded border border-default p-3 text-center">
-                      <p className="text-xs text-muted">
-                        No development tasks yet. Add tasks to track
-                        implementation progress.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {subIssues.map((subIssue) => (
-                        <div
-                          key={subIssue.id}
-                          onClick={() => handleSelectIssue(subIssue.id)}
-                          className="bg-background border border-default rounded p-3 hover:border-hover cursor-pointer transition-colors"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-primary font-medium">
-                              {subIssue.name}
-                            </span>
-                            <span
-                              className={`text-xs px-2 py-0.5 rounded ${
-                                subIssue.status === "done"
-                                  ? "bg-green-500/20 text-green-400"
-                                  : subIssue.status === "in-progress"
-                                  ? "bg-blue-500/20 text-blue-400"
-                                  : "bg-gray-500/20 text-gray-400"
-                              }`}
-                            >
-                              {subIssue.status === "not-started"
-                                ? "Not Started"
-                                : subIssue.status === "in-progress"
-                                ? "In Progress"
-                                : "Done"}
-                            </span>
-                          </div>
-                          {subIssue.description && (
-                            <p className="text-xs text-muted mt-1">
-                              {subIssue.description}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                      <div className="mt-3 pt-3 border-t border-default">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted">Progress</span>
-                          <span className="text-primary font-medium">
-                            {
-                              subIssues.filter((i) => i.status === "done")
-                                .length
-                            }{" "}
-                            / {subIssues.length} complete
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+                Open Development
+                {subIssues.length > 0 && (
+                  <span className="bg-white/20 px-2 py-0.5 rounded text-xs">
+                    {subIssues.filter((i) => i.status === "done").length}/
+                    {subIssues.length}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* AI Discussion Box - Full Width */}

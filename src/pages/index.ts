@@ -2,6 +2,7 @@ export { Dashboard } from "./Dashboard";
 export { ProjectDetail } from "./ProjectDetail";
 export { ViewWorkspace } from "./ViewWorkspace";
 export { IssueDetail } from "./IssueDetail";
+export { DevelopmentPlan } from "./DevelopmentPlan";
 export { Login } from "./Login";
 export { Signup } from "./Signup";
 export { AcceptInvitation } from "./AcceptInvitation";

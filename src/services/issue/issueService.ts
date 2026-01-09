@@ -230,6 +230,7 @@ export async function createSubIssue(
         parent_id: parentId,
         name: name.trim(),
         description: description?.trim() || null,
+        status: "not-started",
         created_by: createdBy,
       })
       .select()
