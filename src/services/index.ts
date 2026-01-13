@@ -4,6 +4,7 @@ export * from "./invitation";
 export * from "./view";
 export * from "./issue";
 export * from "./comment";
+export * from "./note";
 export * from "./document";
 export * from "./link";
 export * from "./ai";

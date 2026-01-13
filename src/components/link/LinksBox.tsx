@@ -122,6 +122,16 @@ export function LinksBox({ contextType, contextId }: LinksBoxProps) {
     }
   };
 
+  // Copy URL to clipboard
+  const handleCopyUrl = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      // Could add a toast notification here if desired
+    } catch (err) {
+      console.error("Failed to copy URL:", err);
+    }
+  };
+
   if (isLoading) {
     return (
       <div>
@@ -233,6 +243,25 @@ export function LinksBox({ contextType, contextId }: LinksBoxProps) {
                   <span>{formatDate(link.createdAt)}</span>
                 </div>
               </div>
+              <button
+                onClick={() => handleCopyUrl(link.url)}
+                className="opacity-0 group-hover:opacity-100 text-muted hover:text-teal-400 transition-all p-1 flex-shrink-0"
+                title="Copy URL"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                  />
+                </svg>
+              </button>
               <button
                 onClick={() => handleDelete(link.id)}
                 className="opacity-0 group-hover:opacity-100 text-muted hover:text-red-400 transition-all p-1 flex-shrink-0"

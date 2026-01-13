@@ -4,6 +4,7 @@ import { AppLayout } from "@/components/layout";
 import { InviteCollaboratorModal } from "@/components/invitation";
 import { DocumentsBox } from "@/components/document";
 import { LinksBox } from "@/components/link";
+import { NotesBox } from "@/components/note";
 import { AIChatBox } from "@/components/ai";
 import { IconPicker } from "@/components/view";
 import { useCommand } from "@/contexts";
@@ -501,46 +502,8 @@ export function ProjectDetail() {
             />
           </div>
 
-          {/* Project Notes/Comments Section */}
-          <div className="bg-surface border border-default rounded-lg p-4">
-            <h3 className="text-sm font-medium text-secondary uppercase tracking-wider mb-3 flex items-center gap-2">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
-                />
-              </svg>
-              Project Notes
-            </h3>
-            <div className="space-y-3">
-              <textarea
-                value={projectNotes}
-                onChange={(e) => setProjectNotes(e.target.value)}
-                placeholder="Add notes about this project..."
-                rows={4}
-                className="w-full px-3 py-2 bg-app border border-default rounded-md text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
-              />
-              <div className="flex justify-end">
-                <button
-                  onClick={handleSaveNotes}
-                  disabled={isSavingNotes}
-                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSavingNotes ? "Saving..." : "Save Notes"}
-                </button>
-              </div>
-              <div className="text-xs text-muted italic">
-                Note: Full comments are available on individual issues
-              </div>
-            </div>
-          </div>
+          {/* Project Notes Section */}
+          <NotesBox projectId={project.id} />
         </div>
 
         {/* Right-hand sidebar - Only Documents and Links */}
