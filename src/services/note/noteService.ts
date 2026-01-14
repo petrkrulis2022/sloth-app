@@ -46,12 +46,12 @@ export async function getNotes(projectId: string): Promise<NoteResponse<NoteWith
 
     // Fetch author information separately
     const authorIds = [...new Set((notes || []).map((n) => n.created_by))];
-    let authors: Record<string, { id: string; name: string; email: string }> = {};
+    let authors: Record<string, { id: string; email: string }> = {};
 
     if (authorIds.length > 0) {
       const { data: users } = await db
         .from("users")
-        .select("id, name, email")
+        .select("id, email")
         .in("id", authorIds);
 
       authors = (users || []).reduce((acc, u) => {
@@ -62,7 +62,7 @@ export async function getNotes(projectId: string): Promise<NoteResponse<NoteWith
 
     const notesWithAuthor: NoteWithAuthor[] = (notes || []).map((note) => ({
       ...toNote(note),
-      authorName: authors[note.created_by]?.name || "Unknown",
+      authorName: authors[note.created_by]?.email?.split('@')[0] || "Unknown",
       authorEmail: authors[note.created_by]?.email || "",
     }));
 
