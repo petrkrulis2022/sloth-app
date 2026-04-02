@@ -115,6 +115,7 @@ export function ViewWorkspace() {
       name: newIssueName,
       issueId: newIssueId || null,
       description: newIssueDescription || null,
+      developmentNotes: null,
       status: "not-started",
       createdBy: session.userId,
       createdAt: new Date(),
@@ -131,13 +132,13 @@ export function ViewWorkspace() {
       newIssueName,
       newIssueDescription || null,
       session.userId,
-      newIssueId || null
+      newIssueId || null,
     );
 
     if (result.success && result.data) {
       // Replace optimistic issue with real one
       setIssues((prev) =>
-        prev.map((i) => (i.id === tempId ? result.data! : i))
+        prev.map((i) => (i.id === tempId ? result.data! : i)),
       );
       addToast("success", `Issue "${result.data.name}" created successfully`);
     } else {
@@ -171,7 +172,7 @@ export function ViewWorkspace() {
 
     if (result.success && result.data) {
       setIssues((prev) =>
-        prev.map((i) => (i.id === editingIssue.id ? result.data! : i))
+        prev.map((i) => (i.id === editingIssue.id ? result.data! : i)),
       );
       addToast("success", "Issue updated successfully");
       setEditingIssue(null);
@@ -197,14 +198,14 @@ export function ViewWorkspace() {
 
   const handleUpdateStatus = async (
     issueId: string,
-    newStatus: IssueStatus
+    newStatus: IssueStatus,
   ) => {
     const issue = issues.find((i) => i.id === issueId);
     if (!issue) return;
 
     // Optimistic update
     setIssues((prev) =>
-      prev.map((i) => (i.id === issueId ? { ...i, status: newStatus } : i))
+      prev.map((i) => (i.id === issueId ? { ...i, status: newStatus } : i)),
     );
 
     const result = await updateIssue(issueId, {
@@ -218,7 +219,9 @@ export function ViewWorkspace() {
     } else {
       // Revert on error
       setIssues((prev) =>
-        prev.map((i) => (i.id === issueId ? { ...i, status: issue.status } : i))
+        prev.map((i) =>
+          i.id === issueId ? { ...i, status: issue.status } : i,
+        ),
       );
       addToast("error", result.message || "Failed to update status");
     }

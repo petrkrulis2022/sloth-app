@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import type { Link, LinkWithCreator, LinkContextType } from "@/types";
+import type { Link, LinkContextType, LinkWithCreator } from "@/types";
 
 export type LinkError =
   | "LINK_NOT_FOUND"
@@ -46,9 +46,9 @@ export function validateUrl(url: string): boolean {
 
 async function validateContext(
   contextType: LinkContextType,
-  contextId: string
+  contextId: string,
 ): Promise<boolean> {
-  let table: string;
+  let table: "projects" | "views" | "issues";
   if (contextType === "project") {
     table = "projects";
   } else if (contextType === "view") {
@@ -56,7 +56,7 @@ async function validateContext(
   } else {
     table = "issues";
   }
-  
+
   const { data } = await db
     .from(table)
     .select("id")
@@ -70,7 +70,7 @@ export async function addLink(
   description: string | undefined,
   contextType: LinkContextType,
   contextId: string,
-  createdBy: string
+  createdBy: string,
 ): Promise<LinkResponse<Link>> {
   if (!validateUrl(url)) {
     return {
@@ -83,7 +83,11 @@ export async function addLink(
   try {
     const contextExists = await validateContext(contextType, contextId);
     if (!contextExists) {
-      const contextName = contextType === "project" ? "Project" : contextType === "view" ? "View" : "Issue";
+      const contextName = contextType === "project"
+        ? "Project"
+        : contextType === "view"
+        ? "View"
+        : "Issue";
       return {
         success: false,
         error: "CONTEXT_NOT_FOUND",
@@ -124,12 +128,16 @@ export async function addLink(
 
 export async function getLinks(
   contextType: LinkContextType,
-  contextId: string
+  contextId: string,
 ): Promise<LinkResponse<LinkWithCreator[]>> {
   try {
     const contextExists = await validateContext(contextType, contextId);
     if (!contextExists) {
-      const contextName = contextType === "project" ? "Project" : contextType === "view" ? "View" : "Issue";
+      const contextName = contextType === "project"
+        ? "Project"
+        : contextType === "view"
+        ? "View"
+        : "Issue";
       return {
         success: false,
         error: "CONTEXT_NOT_FOUND",
@@ -167,10 +175,10 @@ export async function getLinks(
       ...toLink(l),
       creator: creators[l.created_by]
         ? {
-            id: creators[l.created_by].id,
-            email: creators[l.created_by].email,
-            walletAddress: creators[l.created_by].wallet_address,
-          }
+          id: creators[l.created_by].id,
+          email: creators[l.created_by].email,
+          walletAddress: creators[l.created_by].wallet_address,
+        }
         : undefined,
     }));
 

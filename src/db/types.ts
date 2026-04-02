@@ -29,12 +29,14 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       projects: {
         Row: {
           id: string;
           name: string;
           owner_id: string;
+          notes: string | null;
           perplexity_space_id: string | null;
           perplexity_space_name: string | null;
           perplexity_api_key: string | null;
@@ -45,6 +47,7 @@ export interface Database {
           id?: string;
           name: string;
           owner_id: string;
+          notes?: string | null;
           perplexity_space_id?: string | null;
           perplexity_space_name?: string | null;
           perplexity_api_key?: string | null;
@@ -55,12 +58,14 @@ export interface Database {
           id?: string;
           name?: string;
           owner_id?: string;
+          notes?: string | null;
           perplexity_space_id?: string | null;
           perplexity_space_name?: string | null;
           perplexity_api_key?: string | null;
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       project_collaborators: {
         Row: {
@@ -87,6 +92,34 @@ export interface Database {
           invited_at?: string;
           accepted_at?: string | null;
         };
+        Relationships: [];
+      };
+      project_notes: {
+        Row: {
+          id: string;
+          project_id: string;
+          content: string;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          content: string;
+          created_by: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          project_id?: string;
+          content?: string;
+          created_by?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
       };
       invitations: {
         Row: {
@@ -116,6 +149,7 @@ export interface Database {
           created_at?: string;
           expires_at?: string;
         };
+        Relationships: [];
       };
       views: {
         Row: {
@@ -123,6 +157,8 @@ export interface Database {
           project_id: string;
           name: string;
           tag: string;
+          icon: string | null;
+          position: number;
           chat_session_id: string | null;
           chat_session_name: string | null;
           ai_model: string | null;
@@ -135,6 +171,8 @@ export interface Database {
           project_id: string;
           name: string;
           tag: string;
+          icon?: string | null;
+          position?: number;
           chat_session_id?: string | null;
           chat_session_name?: string | null;
           ai_model?: string | null;
@@ -147,6 +185,8 @@ export interface Database {
           project_id?: string;
           name?: string;
           tag?: string;
+          icon?: string | null;
+          position?: number;
           chat_session_id?: string | null;
           chat_session_name?: string | null;
           ai_model?: string | null;
@@ -154,6 +194,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       issues: {
         Row: {
@@ -161,7 +202,10 @@ export interface Database {
           view_id: string;
           parent_id: string | null;
           name: string;
+          issue_id: string | null;
           description: string | null;
+          development_notes: string | null;
+          status: string;
           created_by: string;
           created_at: string;
           updated_at: string;
@@ -171,7 +215,10 @@ export interface Database {
           view_id: string;
           parent_id?: string | null;
           name: string;
+          issue_id?: string | null;
           description?: string | null;
+          development_notes?: string | null;
+          status?: string;
           created_by: string;
           created_at?: string;
           updated_at?: string;
@@ -181,11 +228,15 @@ export interface Database {
           view_id?: string;
           parent_id?: string | null;
           name?: string;
+          issue_id?: string | null;
           description?: string | null;
+          development_notes?: string | null;
+          status?: string;
           created_by?: string;
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       comments: {
         Row: {
@@ -215,6 +266,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       documents: {
         Row: {
@@ -250,6 +302,7 @@ export interface Database {
           uploaded_by?: string;
           created_at?: string;
         };
+        Relationships: [];
       };
       links: {
         Row: {
@@ -279,6 +332,7 @@ export interface Database {
           created_by?: string;
           created_at?: string;
         };
+        Relationships: [];
       };
       ai_conversations: {
         Row: {
@@ -299,6 +353,7 @@ export interface Database {
           context_id?: string;
           created_at?: string;
         };
+        Relationships: [];
       };
       ai_messages: {
         Row: {
@@ -322,8 +377,13 @@ export interface Database {
           content?: string;
           created_at?: string;
         };
+        Relationships: [];
       };
     };
+    Views: { [_ in never]: never };
+    Functions: { [_ in never]: never };
+    Enums: { [_ in never]: never };
+    CompositeTypes: { [_ in never]: never };
   };
 }
 

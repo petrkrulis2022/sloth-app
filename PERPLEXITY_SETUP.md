@@ -197,3 +197,17 @@ VITE_SUPABASE_FUNCTIONS_URL=http://localhost:54321/functions/v1
 - [Supabase Edge Functions Documentation](https://supabase.com/docs/guides/functions)
 - [Perplexity AI API Documentation](https://docs.perplexity.ai/)
 - [Deno Deploy Documentation](https://deno.com/deploy/docs)
+
+## GPT Models (Optional)
+
+The edge function `perplexity-proxy` now supports routing GPT-prefixed models to OpenAI. To enable GPT-5.1-Codex-Max for all clients:
+
+- Set `OPENAI_API_KEY` in your Supabase project environment.
+- Ensure your frontend uses a GPT model string (already configured by default as `gpt-5.1-codex-max`).
+- Redeploy the function:
+
+```bash
+supabase functions deploy perplexity-proxy
+```
+
+If `OPENAI_API_KEY` is not set, GPT requests will return an error. Perplexity models will continue to work using `PERPLEXITY_API_KEY`.

@@ -66,6 +66,7 @@ export function Dashboard() {
       id: tempId,
       name: newProjectName.trim(),
       ownerId: session.userId,
+      notes: null,
       perplexitySpaceId: null,
       perplexitySpaceName: null,
       perplexityApiKey: null,
@@ -81,7 +82,7 @@ export function Dashboard() {
     if (result.success && result.data) {
       // Replace optimistic project with real one
       setProjects((prev) =>
-        prev.map((p) => (p.id === tempId ? result.data! : p))
+        prev.map((p) => (p.id === tempId ? result.data! : p)),
       );
       addToast("success", `Project "${result.data.name}" created successfully`);
     } else {

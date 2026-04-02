@@ -1,15 +1,13 @@
-import Perplexity from "@perplexity-ai/perplexity_ai";
 import { db } from "@/db";
 import type {
   AIContextType,
-  AIModel,
-  AIMessage,
   AIConversation,
+  AIMessage,
+  AIModel,
   ChatMessage,
   ChatResponse,
 } from "@/types";
-import { AI_SYSTEM_PROMPTS, AI_MODEL_CONFIG } from "@/types/ai";
-import { getDecryptedApiKey } from "@/services/perplexity";
+import { AI_MODEL_CONFIG, AI_SYSTEM_PROMPTS } from "@/types/ai";
 
 export type AIError =
   | "CONTEXT_NOT_FOUND"
@@ -27,55 +25,9 @@ export interface AIResponse<T> {
   message?: string;
 }
 
-const perplexityClients: Map<string, Perplexity> = new Map();
-
-async function getPerplexityClientForUser(
-  userId: string
-): Promise<Perplexity | null> {
-  try {
-    // Skip database query - just use environment variable
-    // (Database column doesn't exist yet, causing 400 errors)
-    const apiKey = import.meta.env.VITE_PERPLEXITY_API_KEY;
-
-    if (!apiKey) {
-      return null;
-    }
-
-    // Create and return a new client with the API key
-    return new Perplexity({ apiKey });
-  } catch (error) {
-    console.error("Error getting Perplexity client for user:", error);
-    return null;
-  }
-}
-
-async function getPerplexityClientForProject(
-  projectId: string
-): Promise<Perplexity | null> {
-  if (perplexityClients.has(projectId)) {
-    return perplexityClients.get(projectId)!;
-  }
-
-  const { data: project } = await db
-    .from("projects")
-    .select("perplexity_api_key")
-    .eq("id", projectId)
-    .single();
-
-  const apiKey =
-    project?.perplexity_api_key || import.meta.env.VITE_PERPLEXITY_API_KEY;
-
-  if (!apiKey) return null;
-
-  const client = new Perplexity({ apiKey });
-  perplexityClients.set(projectId, client);
-
-  return client;
-}
-
 async function getProjectIdForContext(
   contextType: AIContextType,
-  contextId: string
+  contextId: string,
 ): Promise<string | null> {
   if (contextType === "view") {
     const { data: view } = await db
@@ -133,7 +85,7 @@ function toAIConversation(dbConversation: {
 
 async function validateContext(
   contextType: AIContextType,
-  contextId: string
+  contextId: string,
 ): Promise<boolean> {
   const table = contextType === "view" ? "views" : "issues";
   const { data } = await db
@@ -146,7 +98,7 @@ async function validateContext(
 
 async function getOrCreateConversation(
   contextType: AIContextType,
-  contextId: string
+  contextId: string,
 ): Promise<AIConversation | null> {
   try {
     const { data: existing } = await db
@@ -177,7 +129,7 @@ export async function chat(
   model: AIModel,
   systemPrompt: string,
   userId: string,
-  projectId?: string
+  projectId?: string,
 ): Promise<AIResponse<ChatResponse>> {
   try {
     const apiMessages = [
@@ -188,6 +140,17 @@ export async function chat(
       })),
     ];
 
+    // Get Claude API key from environment
+    const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      return {
+        success: false,
+        error: "NO_API_KEY",
+        message:
+          "Claude API key not configured. Add VITE_ANTHROPIC_API_KEY to your .env.",
+      };
+    }
+
     // Call Supabase Edge Function (fixes CORS issue)
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -197,12 +160,12 @@ export async function chat(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${supabaseAnonKey}`,
         "apikey": supabaseAnonKey,
       },
       body: JSON.stringify({
         model,
         messages: apiMessages,
+        apiKey,
       }),
     });
 
@@ -230,7 +193,9 @@ export async function chat(
     return {
       success: false,
       error: "API_ERROR",
-      message: error instanceof Error ? error.message : "AI assistant is temporarily unavailable.",
+      message: error instanceof Error
+        ? error.message
+        : "AI assistant is temporarily unavailable.",
     };
   }
 }
@@ -244,7 +209,7 @@ export async function sendMessage(
   contextId: string,
   userMessage: string,
   userId: string,
-  conversationHistory: ChatMessage[] = []
+  conversationHistory: ChatMessage[] = [],
 ): Promise<AIResponse<{ userMessage: string; aiResponse: string }>> {
   if (!userMessage || userMessage.trim().length === 0) {
     return {
@@ -256,22 +221,24 @@ export async function sendMessage(
 
   try {
     // Check if API key is available in environment
-    const apiKey = import.meta.env.VITE_PERPLEXITY_API_KEY;
+    const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
 
     if (!apiKey) {
       return {
         success: false,
         error: "NO_API_KEY",
-        message: "Please configure your Perplexity API key in .env file.",
+        message: "Please configure your VITE_ANTHROPIC_API_KEY in .env file.",
       };
     }
 
     const projectId = await getProjectIdForContext(contextType, contextId);
 
-    const model =
-      contextType === "view" ? AI_MODEL_CONFIG.view : AI_MODEL_CONFIG.issue;
-    const systemPrompt =
-      contextType === "view" ? AI_SYSTEM_PROMPTS.view : AI_SYSTEM_PROMPTS.issue;
+    const model = contextType === "view"
+      ? AI_MODEL_CONFIG.view
+      : AI_MODEL_CONFIG.issue;
+    const systemPrompt = contextType === "view"
+      ? AI_SYSTEM_PROMPTS.view
+      : AI_SYSTEM_PROMPTS.issue;
 
     // Add current message to history for API call
     const chatMessages: ChatMessage[] = [
@@ -284,7 +251,7 @@ export async function sendMessage(
       model,
       systemPrompt,
       userId,
-      projectId || undefined
+      projectId || undefined,
     );
 
     if (!aiResult.success || !aiResult.data) {
@@ -295,8 +262,8 @@ export async function sendMessage(
       };
     }
 
-    const aiContent =
-      aiResult.data.choices[0]?.message?.content || "No response from AI.";
+    const aiContent = aiResult.data.choices[0]?.message?.content ||
+      "No response from AI.";
 
     return {
       success: true,
@@ -317,4 +284,4 @@ export async function sendMessage(
 
 // Conversation clearing is now handled in component state
 
-export { AI_SYSTEM_PROMPTS, AI_MODEL_CONFIG };
+export { AI_MODEL_CONFIG, AI_SYSTEM_PROMPTS };

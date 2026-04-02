@@ -98,7 +98,10 @@ export function IssueDetail() {
       viewId: issue.viewId,
       parentId: id,
       name: newSubIssueName,
+      issueId: null,
       description: newSubIssueDescription || null,
+      developmentNotes: null,
+      status: "not-started",
       createdBy: session.userId,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -112,17 +115,17 @@ export function IssueDetail() {
       id,
       newSubIssueName,
       newSubIssueDescription || null,
-      session.userId
+      session.userId,
     );
 
     if (result.success && result.data) {
       // Replace optimistic sub-issue with real one
       setSubIssues((prev) =>
-        prev.map((i) => (i.id === tempId ? result.data! : i))
+        prev.map((i) => (i.id === tempId ? result.data! : i)),
       );
       addToast(
         "success",
-        `Sub-issue "${result.data.name}" created successfully`
+        `Sub-issue "${result.data.name}" created successfully`,
       );
     } else {
       // Rollback optimistic update

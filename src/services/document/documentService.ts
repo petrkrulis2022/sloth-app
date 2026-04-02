@@ -1,15 +1,15 @@
 import { db } from "@/db";
 import {
-  supabase,
   DOCUMENTS_BUCKET,
-  isAllowedFileType,
   isAllowedFileSize,
+  isAllowedFileType,
   MAX_FILE_SIZE,
+  supabase,
 } from "@/config/supabase";
 import type {
   Document,
-  DocumentWithUploader,
   DocumentContextType,
+  DocumentWithUploader,
 } from "@/types";
 
 export type DocumentError =
@@ -55,7 +55,7 @@ function toDocument(dbDocument: {
 function generateStoragePath(
   contextType: DocumentContextType,
   contextId: string,
-  fileName: string
+  fileName: string,
 ): string {
   const timestamp = Date.now();
   const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
@@ -64,9 +64,9 @@ function generateStoragePath(
 
 async function validateContext(
   contextType: DocumentContextType,
-  contextId: string
+  contextId: string,
 ): Promise<boolean> {
-  let table: string;
+  let table: "projects" | "views" | "issues";
   if (contextType === "project") {
     table = "projects";
   } else if (contextType === "view") {
@@ -74,7 +74,7 @@ async function validateContext(
   } else {
     table = "issues";
   }
-  
+
   const { data } = await db
     .from(table)
     .select("id")
@@ -87,7 +87,7 @@ export async function uploadDocument(
   file: File,
   contextType: DocumentContextType,
   contextId: string,
-  uploadedBy: string
+  uploadedBy: string,
 ): Promise<DocumentResponse<Document>> {
   if (!isAllowedFileType(file.type)) {
     return {
@@ -110,7 +110,11 @@ export async function uploadDocument(
   try {
     const contextExists = await validateContext(contextType, contextId);
     if (!contextExists) {
-      const contextName = contextType === "project" ? "Project" : contextType === "view" ? "View" : "Issue";
+      const contextName = contextType === "project"
+        ? "Project"
+        : contextType === "view"
+        ? "View"
+        : "Issue";
       return {
         success: false,
         error: "CONTEXT_NOT_FOUND",
@@ -169,12 +173,16 @@ export async function uploadDocument(
 
 export async function getDocuments(
   contextType: DocumentContextType,
-  contextId: string
+  contextId: string,
 ): Promise<DocumentResponse<DocumentWithUploader[]>> {
   try {
     const contextExists = await validateContext(contextType, contextId);
     if (!contextExists) {
-      const contextName = contextType === "project" ? "Project" : contextType === "view" ? "View" : "Issue";
+      const contextName = contextType === "project"
+        ? "Project"
+        : contextType === "view"
+        ? "View"
+        : "Issue";
       return {
         success: false,
         error: "CONTEXT_NOT_FOUND",
@@ -215,12 +223,12 @@ export async function getDocuments(
         ...toDocument(d),
         uploader: uploaders[d.uploaded_by]
           ? {
-              id: uploaders[d.uploaded_by].id,
-              email: uploaders[d.uploaded_by].email,
-              walletAddress: uploaders[d.uploaded_by].wallet_address,
-            }
+            id: uploaders[d.uploaded_by].id,
+            email: uploaders[d.uploaded_by].email,
+            walletAddress: uploaders[d.uploaded_by].wallet_address,
+          }
           : undefined,
-      })
+      }),
     );
 
     return { success: true, data: documentsWithUploader };
@@ -235,7 +243,7 @@ export async function getDocuments(
 }
 
 export async function deleteDocument(
-  documentId: string
+  documentId: string,
 ): Promise<DocumentResponse<void>> {
   try {
     const { data: existingDocument } = await db
@@ -279,7 +287,7 @@ export async function deleteDocument(
 }
 
 export async function getDownloadUrl(
-  documentId: string
+  documentId: string,
 ): Promise<DocumentResponse<string>> {
   try {
     const { data: existingDocument } = await db
@@ -320,7 +328,7 @@ export async function getDownloadUrl(
 }
 
 export async function getDocument(
-  documentId: string
+  documentId: string,
 ): Promise<DocumentResponse<Document>> {
   try {
     const { data, error } = await db

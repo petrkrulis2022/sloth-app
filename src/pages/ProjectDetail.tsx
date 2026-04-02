@@ -132,6 +132,7 @@ export function ProjectDetail() {
       name: newViewName,
       tag: newViewTag,
       icon: newViewIcon,
+      position: 0,
       chatSessionId: null,
       chatSessionName: null,
       aiModel: "sonar-deep-research",
@@ -265,7 +266,7 @@ export function ProjectDetail() {
 
     if (result.success && result.data) {
       setViews((prev) =>
-        prev.map((v) => (v.id === editingViewId ? result.data! : v))
+        prev.map((v) => (v.id === editingViewId ? result.data! : v)),
       );
       addToast("success", "View updated successfully");
       setEditingViewId(null);
