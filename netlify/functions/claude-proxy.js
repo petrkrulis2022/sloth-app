@@ -4,11 +4,13 @@ export async function handler(event) {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.ANTHROPIC_API_KEY || process.env.VITE_ANTHROPIC_API_KEY;
   if (!apiKey) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "ANTHROPIC_API_KEY not configured on server" }),
+      body: JSON.stringify({
+        error: "ANTHROPIC_API_KEY not configured on server",
+      }),
     };
   }
 
@@ -16,13 +18,19 @@ export async function handler(event) {
   try {
     body = JSON.parse(event.body);
   } catch {
-    return { statusCode: 400, body: JSON.stringify({ error: "Invalid JSON body" }) };
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: "Invalid JSON body" }),
+    };
   }
 
   const { model, messages, system } = body;
 
   if (!messages || !Array.isArray(messages)) {
-    return { statusCode: 400, body: JSON.stringify({ error: "messages array required" }) };
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: "messages array required" }),
+    };
   }
 
   const anthropicBody = {
@@ -49,7 +57,10 @@ export async function handler(event) {
   if (!anthropicRes.ok) {
     return {
       statusCode: anthropicRes.status,
-      body: JSON.stringify({ error: data.error?.message || "Claude API error", details: data }),
+      body: JSON.stringify({
+        error: data.error?.message || "Claude API error",
+        details: data,
+      }),
     };
   }
 
@@ -58,15 +69,18 @@ export async function handler(event) {
   const normalized = {
     id: data.id,
     model: data.model,
-    choices: [{
-      index: 0,
-      message: { role: "assistant", content },
-      finish_reason: data.stop_reason ?? "end_turn",
-    }],
+    choices: [
+      {
+        index: 0,
+        message: { role: "assistant", content },
+        finish_reason: data.stop_reason ?? "end_turn",
+      },
+    ],
     usage: {
       prompt_tokens: data.usage?.input_tokens ?? 0,
       completion_tokens: data.usage?.output_tokens ?? 0,
-      total_tokens: (data.usage?.input_tokens ?? 0) + (data.usage?.output_tokens ?? 0),
+      total_tokens:
+        (data.usage?.input_tokens ?? 0) + (data.usage?.output_tokens ?? 0),
     },
   };
 
