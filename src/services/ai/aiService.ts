@@ -161,6 +161,7 @@ export async function chat(
       headers: {
         "Content-Type": "application/json",
         "apikey": supabaseAnonKey,
+        "Authorization": `Bearer ${supabaseAnonKey}`,
       },
       body: JSON.stringify({
         model,
