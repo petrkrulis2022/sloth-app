@@ -140,63 +140,29 @@ export async function chat(
       })),
     ];
 
-    // Get Claude API key from environment
-    const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      return {
-        success: false,
-        error: "NO_API_KEY",
-        message:
-          "Claude API key not configured. Add VITE_ANTHROPIC_API_KEY to your .env.",
-      };
-    }
-
     // Separate system message from conversation messages (Anthropic format)
     const systemMessage = apiMessages.find((m) => m.role === "system");
     const conversationMessages = apiMessages.filter((m) => m.role !== "system");
 
-    const anthropicBody: Record<string, unknown> = {
-      model,
-      max_tokens: 8096,
-      messages: conversationMessages,
-    };
-    if (systemMessage) {
-      anthropicBody.system = systemMessage.content;
-    }
-
-    // Call Anthropic API directly (supports browser CORS)
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    // Call via Netlify serverless function proxy (avoids CORS + keeps key server-side)
+    const response = await fetch("/.netlify/functions/claude-proxy", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify(anthropicBody),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages: conversationMessages,
+        system: systemMessage?.content,
+      }),
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error?.message || `API error: ${response.status}`);
+      throw new Error(
+        errorData.error || `API error: ${response.status}`,
+      );
     }
 
-    // Normalize Anthropic response to OpenAI-compatible ChatResponse format
-    const anthropicData = await response.json();
-    const content = anthropicData.content?.[0]?.text ?? "";
-    const data: ChatResponse = {
-      id: anthropicData.id,
-      model: anthropicData.model,
-      choices: [{
-        index: 0,
-        message: { role: "assistant", content },
-        finish_reason: anthropicData.stop_reason ?? "end_turn",
-      }],
-      usage: {
-        prompt_tokens: anthropicData.usage?.input_tokens ?? 0,
-        completion_tokens: anthropicData.usage?.output_tokens ?? 0,
-        total_tokens: (anthropicData.usage?.input_tokens ?? 0) + (anthropicData.usage?.output_tokens ?? 0),
-      },
-    };
+    const data = await response.json() as ChatResponse;
     return { success: true, data };
   } catch (error: unknown) {
     console.error("AI chat error:", error);
