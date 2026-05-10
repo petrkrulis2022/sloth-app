@@ -144,16 +144,46 @@ export async function chat(
     const systemMessage = apiMessages.find((m) => m.role === "system");
     const conversationMessages = apiMessages.filter((m) => m.role !== "system");
 
-    // Call via Netlify serverless function proxy (avoids CORS + keeps key server-side)
-    const response = await fetch("/.netlify/functions/claude-proxy", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        messages: conversationMessages,
-        system: systemMessage?.content,
-      }),
-    });
+    // Determine if we're in development or production
+    const isDev = import.meta.env.DEV ||
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1";
+
+    let response: Response;
+
+    if (isDev) {
+      // In development, call Claude directly (API key is in .env)
+      const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+      if (!apiKey) {
+        throw new Error("VITE_ANTHROPIC_API_KEY not configured in .env");
+      }
+
+      response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: model || "claude-sonnet-4-5",
+          max_tokens: 8096,
+          messages: conversationMessages,
+          system: systemMessage?.content,
+        }),
+      });
+    } else {
+      // In production, call via Netlify serverless function proxy
+      response = await fetch("/.netlify/functions/claude-proxy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model,
+          messages: conversationMessages,
+          system: systemMessage?.content,
+        }),
+      });
+    }
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -162,8 +192,34 @@ export async function chat(
       );
     }
 
-    const data = await response.json() as ChatResponse;
-    return { success: true, data };
+    const data = await response.json() as any;
+
+    // Normalize Anthropic response to expected format (for dev mode)
+    if (isDev && data.content) {
+      const normalized = {
+        id: data.id,
+        model: data.model,
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: "assistant",
+              content: data.content?.[0]?.text ?? "",
+            },
+            finish_reason: data.stop_reason ?? "end_turn",
+          },
+        ],
+        usage: {
+          prompt_tokens: data.usage?.input_tokens ?? 0,
+          completion_tokens: data.usage?.output_tokens ?? 0,
+          total_tokens: (data.usage?.input_tokens ?? 0) +
+            (data.usage?.output_tokens ?? 0),
+        },
+      };
+      return { success: true, data: normalized };
+    }
+
+    return { success: true, data: data as ChatResponse };
   } catch (error: unknown) {
     console.error("AI chat error:", error);
 
