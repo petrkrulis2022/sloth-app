@@ -6,9 +6,12 @@
 export type AIContextType = "view" | "issue" | "project";
 
 export type AIModel =
+  | "claude-opus-4-8"
   | "claude-opus-4-5"
   | "claude-sonnet-4-5"
   | "claude-haiku-4-5";
+
+export type AIEffort = "low" | "medium" | "high" | "xhigh" | "max";
 
 export type AIMessageRole = "user" | "assistant" | "system";
 
@@ -81,7 +84,35 @@ Be precise, technical when appropriate, and provide concrete examples when helpf
 /**
  * Model configuration for different contexts
  */
+const getConfiguredModel = (fallback: AIModel, envName: string): AIModel => {
+  const configured = import.meta.env[envName];
+  return (configured as AIModel | undefined) || fallback;
+};
+
 export const AI_MODEL_CONFIG = {
-  view: "claude-opus-4-5" as AIModel,
-  issue: "claude-sonnet-4-5" as AIModel,
+  view: getConfiguredModel("claude-opus-4-8", "VITE_AI_VIEW_MODEL"),
+  issue: getConfiguredModel("claude-opus-4-8", "VITE_AI_ISSUE_MODEL"),
 } as const;
+
+/**
+ * Reasoning effort for models that support it (Opus 4.6+ / Sonnet 4.6+).
+ * Override with VITE_AI_EFFORT (low | medium | high | xhigh | max).
+ */
+export const AI_EFFORT: AIEffort =
+  (import.meta.env.VITE_AI_EFFORT as AIEffort | undefined) || "high";
+
+/**
+ * Models that accept adaptive thinking + output_config.effort.
+ * Older models (Opus 4.5, Sonnet 4.5, Haiku 4.5) reject those params with a 400,
+ * so requests only include them when the model matches this list.
+ */
+const ADAPTIVE_THINKING_MODELS = [
+  "claude-opus-4-8",
+  "claude-opus-4-7",
+  "claude-opus-4-6",
+  "claude-sonnet-5",
+  "claude-sonnet-4-6",
+];
+
+export const supportsAdaptiveThinking = (model: string): boolean =>
+  ADAPTIVE_THINKING_MODELS.some((id) => model.startsWith(id));

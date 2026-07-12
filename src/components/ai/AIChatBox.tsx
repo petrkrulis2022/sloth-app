@@ -1,6 +1,21 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { AIContextType, ChatMessage } from "@/types";
 import { sendMessage } from "@/services/ai";
+import { AI_EFFORT, AI_MODEL_CONFIG } from "@/types/ai";
+
+/** "claude-opus-4-8" -> "Claude Opus 4.8" */
+function formatModelName(model: string): string {
+  const words: string[] = [];
+  let version = "";
+  for (const part of model.split("-")) {
+    if (/^\d+$/.test(part)) {
+      version = version ? `${version}.${part}` : part;
+    } else {
+      words.push(part.charAt(0).toUpperCase() + part.slice(1));
+    }
+  }
+  return version ? `${words.join(" ")} ${version}` : words.join(" ");
+}
 
 interface AIChatBoxProps {
   contextType: AIContextType;
@@ -125,6 +140,11 @@ export function AIChatBox({ contextType, contextId, userId }: AIChatBoxProps) {
   };
 
   const contextLabel = contextType === "view" ? "Strategic" : "Technical";
+  // Same selection logic as sendMessage: "view" uses the view model,
+  // everything else uses the issue model.
+  const activeModel = contextType === "view"
+    ? AI_MODEL_CONFIG.view
+    : AI_MODEL_CONFIG.issue;
 
   return (
     <div className="flex flex-col h-full bg-gray-900 rounded-lg border border-gray-700">
@@ -147,6 +167,12 @@ export function AIChatBox({ contextType, contextId, userId }: AIChatBoxProps) {
           <h3 className="text-sm font-medium text-white">
             AI {contextLabel} Assistant
           </h3>
+          <span
+            title={`${activeModel} · ${AI_EFFORT} effort`}
+            className="text-xs text-gray-400 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5"
+          >
+            {formatModelName(activeModel)}
+          </span>
         </div>
         {messages.length > 0 && (
           <button

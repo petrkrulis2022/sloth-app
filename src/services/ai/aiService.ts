@@ -7,7 +7,12 @@ import type {
   ChatMessage,
   ChatResponse,
 } from "@/types";
-import { AI_MODEL_CONFIG, AI_SYSTEM_PROMPTS } from "@/types/ai";
+import {
+  AI_EFFORT,
+  AI_MODEL_CONFIG,
+  AI_SYSTEM_PROMPTS,
+  supportsAdaptiveThinking,
+} from "@/types/ai";
 
 export type AIError =
   | "CONTEXT_NOT_FOUND"
@@ -149,6 +154,16 @@ export async function chat(
       window.location.hostname === "localhost" ||
       window.location.hostname === "127.0.0.1";
 
+    const resolvedModel = model || "claude-opus-4-8";
+    // Adaptive thinking + effort are only accepted by Opus 4.6+ / Sonnet 4.6+;
+    // older models reject them with a 400.
+    const reasoningParams = supportsAdaptiveThinking(resolvedModel)
+      ? {
+        thinking: { type: "adaptive" },
+        output_config: { effort: AI_EFFORT },
+      }
+      : {};
+
     let response: Response;
 
     if (isDev) {
@@ -166,8 +181,9 @@ export async function chat(
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-          model: model || "claude-sonnet-4-5",
-          max_tokens: 8096,
+          model: resolvedModel,
+          max_tokens: 16000,
+          ...reasoningParams,
           messages: conversationMessages,
           system: systemMessage?.content,
         }),
@@ -178,7 +194,8 @@ export async function chat(
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model,
+          model: resolvedModel,
+          effort: AI_EFFORT,
           messages: conversationMessages,
           system: systemMessage?.content,
         }),
@@ -204,7 +221,11 @@ export async function chat(
             index: 0,
             message: {
               role: "assistant",
-              content: data.content?.[0]?.text ?? "",
+              // With adaptive thinking the first block can be a thinking
+              // block — pick the text block explicitly.
+              content: data.content?.find(
+                (block: { type: string }) => block.type === "text",
+              )?.text ?? "",
             },
             finish_reason: data.stop_reason ?? "end_turn",
           },

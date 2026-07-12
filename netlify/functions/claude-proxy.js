@@ -25,7 +25,7 @@ export async function handler(event) {
     };
   }
 
-  const { model, messages, system } = body;
+  const { model, messages, system, effort } = body;
 
   if (!messages || !Array.isArray(messages)) {
     return {
@@ -34,11 +34,27 @@ export async function handler(event) {
     };
   }
 
+  const resolvedModel = model || "claude-opus-4-8";
+
+  // Adaptive thinking + output_config.effort are only accepted by
+  // Opus 4.6+ / Sonnet 4.6+; older models reject them with a 400.
+  const supportsAdaptiveThinking = [
+    "claude-opus-4-8",
+    "claude-opus-4-7",
+    "claude-opus-4-6",
+    "claude-sonnet-5",
+    "claude-sonnet-4-6",
+  ].some((id) => resolvedModel.startsWith(id));
+
   const anthropicBody = {
-    model: model || "claude-sonnet-4-5",
-    max_tokens: 8096,
+    model: resolvedModel,
+    max_tokens: 16000,
     messages,
   };
+  if (supportsAdaptiveThinking) {
+    anthropicBody.thinking = { type: "adaptive" };
+    anthropicBody.output_config = { effort: effort || "high" };
+  }
   if (system) {
     anthropicBody.system = system;
   }
@@ -65,8 +81,10 @@ export async function handler(event) {
     };
   }
 
-  // Normalize to OpenAI-compatible format
-  const content = data.content?.[0]?.text ?? "";
+  // Normalize to OpenAI-compatible format. With adaptive thinking the first
+  // block can be a thinking block — pick the text block explicitly.
+  const content =
+    data.content?.find((block) => block.type === "text")?.text ?? "";
   const normalized = {
     id: data.id,
     model: data.model,
