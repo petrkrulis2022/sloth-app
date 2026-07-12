@@ -91,7 +91,10 @@ export async function getViews(
       .from("views")
       .select("*")
       .eq("project_id", projectId)
-      .order("position", { ascending: true });
+      .order("position", { ascending: true })
+      // Tiebreaker for views sharing the same position (e.g. rows created
+      // before positions were tracked) so their order stays stable.
+      .order("created_at", { ascending: true });
 
     if (error) throw error;
 

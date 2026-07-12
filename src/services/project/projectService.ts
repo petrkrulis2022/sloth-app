@@ -280,6 +280,8 @@ export async function copyProject(
         project_id: newProject.id,
         name: v.name,
         tag: v.tag,
+        icon: v.icon,
+        position: v.position,
       }));
       await db.from("views").insert(viewsToInsert);
     }
@@ -369,7 +371,12 @@ export async function getProjectViews(
     const { data, error } = await db
       .from("views")
       .select("*")
-      .eq("project_id", projectId);
+      .eq("project_id", projectId)
+      // Without an explicit order Postgres returns rows in arbitrary order,
+      // which reshuffles whenever rows are updated. created_at breaks ties
+      // between views sharing the same position.
+      .order("position", { ascending: true })
+      .order("created_at", { ascending: true });
 
     if (error) throw error;
 
