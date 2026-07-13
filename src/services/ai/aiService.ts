@@ -231,6 +231,102 @@ export async function buildContextAttachments(
   }
 }
 
+const isDevEnvironment = (): boolean =>
+  import.meta.env.DEV ||
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1";
+
+/**
+ * Reassembles an Anthropic SSE stream into a complete message object
+ * (same shape as a non-streaming response). The proxy streams so heavy
+ * requests aren't killed by Netlify's ~10s synchronous function limit.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function readSSEMessage(response: Response): Promise<any> {
+  if (!response.body) throw new Error("Empty response stream");
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let message: any = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const blocks: any[] = [];
+  const partialJson: Record<number, string> = {};
+
+  const processEvent = (payload: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let event: any;
+    try {
+      event = JSON.parse(payload);
+    } catch {
+      return; // ignore malformed keep-alive payloads
+    }
+
+    switch (event.type) {
+      case "message_start":
+        message = event.message;
+        break;
+      case "content_block_start":
+        blocks[event.index] = JSON.parse(JSON.stringify(event.content_block));
+        break;
+      case "content_block_delta": {
+        const block = blocks[event.index];
+        const delta = event.delta;
+        if (!block || !delta) break;
+        if (delta.type === "text_delta") {
+          block.text = (block.text ?? "") + delta.text;
+        } else if (delta.type === "thinking_delta") {
+          block.thinking = (block.thinking ?? "") + delta.thinking;
+        } else if (delta.type === "input_json_delta") {
+          partialJson[event.index] = (partialJson[event.index] ?? "") +
+            delta.partial_json;
+        }
+        break;
+      }
+      case "content_block_stop": {
+        const partial = partialJson[event.index];
+        if (partial !== undefined && blocks[event.index]) {
+          try {
+            blocks[event.index].input = JSON.parse(partial || "{}");
+          } catch {
+            // keep whatever input the block already carried
+          }
+        }
+        break;
+      }
+      case "message_delta":
+        if (message) {
+          message.stop_reason = event.delta?.stop_reason ??
+            message.stop_reason;
+          message.usage = { ...message.usage, ...event.usage };
+        }
+        break;
+      case "error":
+        throw new Error(event.error?.message || "Stream error");
+    }
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    // SSE events are separated by blank lines
+    const events = buffer.split("\n\n");
+    buffer = events.pop() ?? "";
+    for (const rawEvent of events) {
+      for (const line of rawEvent.split("\n")) {
+        if (line.startsWith("data:")) processEvent(line.slice(5).trim());
+      }
+    }
+  }
+
+  if (!message) throw new Error("Empty stream response");
+  message.content = blocks.filter(Boolean);
+  return message;
+}
+
 export async function chat(
   messages: ChatMessage[],
   model: AIModel,
@@ -296,9 +392,7 @@ export async function chat(
     }
 
     // Determine if we're in development or production
-    const isDev = import.meta.env.DEV ||
-      window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1";
+    const isDev = isDevEnvironment();
 
     const callClaude = async (
       requestMessages: ApiMessage[],
@@ -349,6 +443,12 @@ export async function chat(
         throw new Error(errorData.error || `API error: ${response.status}`);
       }
 
+      // The proxy streams SSE (to stay under Netlify's sync time limit);
+      // the direct dev call returns plain JSON.
+      const contentType = response.headers.get("content-type") ?? "";
+      if (contentType.includes("text/event-stream")) {
+        return await readSSEMessage(response);
+      }
       return await response.json();
     };
 
@@ -366,13 +466,26 @@ export async function chat(
       data = await callClaude(requestMessages);
     }
 
-    // Normalize the Anthropic response. Text can be split across several
-    // blocks interleaved with thinking / server-tool blocks — join them all.
-    const text =
-      ((data.content ?? []) as Array<{ type: string; text?: string }>)
-        .filter((block) => block.type === "text")
-        .map((block) => block.text ?? "")
-        .join("\n\n");
+    // Normalize the Anthropic response. Web fetch/search segments text into
+    // multiple blocks even mid-sentence, so adjacent text blocks are joined
+    // as-is; a paragraph break is added only where a tool-use block
+    // interrupted the text.
+    const parts: string[] = [];
+    let currentPart = "";
+    for (
+      const block of (data.content ?? []) as Array<
+        { type: string; text?: string }
+      >
+    ) {
+      if (block.type === "text") {
+        currentPart += block.text ?? "";
+      } else if (currentPart) {
+        parts.push(currentPart);
+        currentPart = "";
+      }
+    }
+    if (currentPart) parts.push(currentPart);
+    const text = parts.join("\n\n");
 
     const normalized: ChatResponse = {
       id: data.id,
@@ -437,10 +550,9 @@ export async function sendMessage(
   }
 
   try {
-    // Check if API key is available in environment
-    const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
-
-    if (!apiKey) {
+    // Only local development calls the API directly and needs a client-side
+    // key; production goes through the Netlify proxy with the server's key.
+    if (isDevEnvironment() && !import.meta.env.VITE_ANTHROPIC_API_KEY) {
       return {
         success: false,
         error: "NO_API_KEY",
