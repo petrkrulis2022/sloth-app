@@ -54,6 +54,17 @@ export async function handler(event) {
   if (supportsAdaptiveThinking) {
     anthropicBody.thinking = { type: "adaptive" };
     anthropicBody.output_config = { effort: effort || "high" };
+    // Server-side web tools (executed on Anthropic's infrastructure) so the
+    // assistant can read saved/shared links. Only supported on these models.
+    anthropicBody.tools = [
+      { type: "web_search_20260209", name: "web_search", max_uses: 3 },
+      {
+        type: "web_fetch_20260209",
+        name: "web_fetch",
+        max_uses: 5,
+        max_content_tokens: 25000,
+      },
+    ];
   }
   if (system) {
     anthropicBody.system = system;
@@ -81,31 +92,11 @@ export async function handler(event) {
     };
   }
 
-  // Normalize to OpenAI-compatible format. With adaptive thinking the first
-  // block can be a thinking block — pick the text block explicitly.
-  const content =
-    data.content?.find((block) => block.type === "text")?.text ?? "";
-  const normalized = {
-    id: data.id,
-    model: data.model,
-    choices: [
-      {
-        index: 0,
-        message: { role: "assistant", content },
-        finish_reason: data.stop_reason ?? "end_turn",
-      },
-    ],
-    usage: {
-      prompt_tokens: data.usage?.input_tokens ?? 0,
-      completion_tokens: data.usage?.output_tokens ?? 0,
-      total_tokens:
-        (data.usage?.input_tokens ?? 0) + (data.usage?.output_tokens ?? 0),
-    },
-  };
-
+  // Return the raw Anthropic response — the client normalizes it and
+  // handles the pause_turn continuation loop for server-side web tools.
   return {
     statusCode: 200,
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(normalized),
+    body: JSON.stringify(data),
   };
 }

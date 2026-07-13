@@ -13,6 +13,8 @@ import {
   AI_SYSTEM_PROMPTS,
   supportsAdaptiveThinking,
 } from "@/types/ai";
+import { getDocuments, getDownloadUrl } from "@/services/document";
+import { getLinks } from "@/services/link";
 
 export type AIError =
   | "CONTEXT_NOT_FOUND"
@@ -129,118 +131,268 @@ async function getOrCreateConversation(
   }
 }
 
+type AIContentBlock =
+  | { type: "text"; text: string }
+  | { type: "document"; source: { type: "url"; url: string }; title?: string }
+  | { type: "image"; source: { type: "url"; url: string } };
+
+export interface ChatAttachments {
+  blocks: AIContentBlock[];
+  contextText: string;
+}
+
+const READABLE_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+];
+
+/**
+ * Collects saved documents and links for a context so the assistant can use
+ * them. PDFs and images are attached as content blocks via short-lived signed
+ * URLs (the Anthropic API fetches them server-side, so the request body stays
+ * small); links are listed in context so the web_fetch tool can read them.
+ * Best effort — a failure just means the chat proceeds without extra context.
+ */
+export async function buildContextAttachments(
+  contextType: AIContextType,
+  contextId: string,
+): Promise<ChatAttachments | null> {
+  try {
+    const [docsResult, linksResult] = await Promise.all([
+      getDocuments(contextType, contextId),
+      getLinks(contextType, contextId),
+    ]);
+
+    const blocks: AIContentBlock[] = [];
+    const attached: string[] = [];
+    const unreadable: string[] = [];
+
+    for (const doc of docsResult.data ?? []) {
+      const isPdf = doc.fileType === "application/pdf";
+      const isImage = READABLE_IMAGE_TYPES.includes(doc.fileType);
+      if (!isPdf && !isImage) {
+        // Office docs / SVG can't be read natively by the API
+        unreadable.push(doc.fileName);
+        continue;
+      }
+
+      const urlResult = await getDownloadUrl(doc.id);
+      if (!urlResult.success || !urlResult.data) continue;
+
+      if (isPdf) {
+        blocks.push({
+          type: "document",
+          source: { type: "url", url: urlResult.data },
+          title: doc.fileName,
+        });
+      } else {
+        blocks.push({
+          type: "image",
+          source: { type: "url", url: urlResult.data },
+        });
+      }
+      attached.push(doc.fileName);
+    }
+
+    const lines: string[] = [];
+    if (attached.length > 0) {
+      lines.push(
+        `Documents saved in this workspace are attached above: ${
+          attached.join(", ")
+        }.`,
+      );
+    }
+    if (unreadable.length > 0) {
+      lines.push(
+        `These saved documents exist but you cannot read their format directly: ${
+          unreadable.join(", ")
+        }. If their content is needed, suggest re-uploading them as PDF.`,
+      );
+    }
+    const links = linksResult.data ?? [];
+    if (links.length > 0) {
+      lines.push(
+        "Links saved in this workspace (read them with web_fetch when relevant):",
+      );
+      for (const link of links) {
+        lines.push(
+          `- ${link.url}${link.description ? ` — ${link.description}` : ""}`,
+        );
+      }
+    }
+
+    if (blocks.length === 0 && lines.length === 0) return null;
+    return { blocks, contextText: lines.join("\n") };
+  } catch (error) {
+    console.warn("Failed to collect chat context attachments:", error);
+    return null;
+  }
+}
+
 export async function chat(
   messages: ChatMessage[],
   model: AIModel,
   systemPrompt: string,
   userId: string,
   projectId?: string,
+  attachments?: ChatAttachments | null,
 ): Promise<AIResponse<ChatResponse>> {
   try {
-    const apiMessages = [
-      { role: "system" as const, content: systemPrompt },
-      ...messages.map((m) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      })),
-    ];
-
-    // Separate system message from conversation messages (Anthropic format)
-    const systemMessage = apiMessages.find((m) => m.role === "system");
-    const conversationMessages = apiMessages.filter((m) => m.role !== "system");
-
-    // Determine if we're in development or production
-    const isDev = import.meta.env.DEV ||
-      window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1";
-
     const resolvedModel = model || "claude-opus-4-8";
-    // Adaptive thinking + effort are only accepted by Opus 4.6+ / Sonnet 4.6+;
-    // older models reject them with a 400.
-    const reasoningParams = supportsAdaptiveThinking(resolvedModel)
+    // Adaptive thinking, effort, and the 20260209 web tools are only accepted
+    // by Opus 4.6+ / Sonnet 4.6+; older models reject them with a 400.
+    const isModernModel = supportsAdaptiveThinking(resolvedModel);
+    const reasoningParams = isModernModel
       ? {
         thinking: { type: "adaptive" },
         output_config: { effort: AI_EFFORT },
       }
       : {};
 
-    let response: Response;
+    // Server-side tools — Anthropic executes them, nothing runs client-side.
+    const tools = isModernModel
+      ? [
+        { type: "web_search_20260209", name: "web_search", max_uses: 3 },
+        {
+          type: "web_fetch_20260209",
+          name: "web_fetch",
+          max_uses: 5,
+          max_content_tokens: 25000,
+        },
+      ]
+      : undefined;
 
-    if (isDev) {
-      // In development, call Claude directly (API key is in .env)
-      const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
-      if (!apiKey) {
-        throw new Error("VITE_ANTHROPIC_API_KEY not configured in .env");
+    const system = tools
+      ? `${systemPrompt}\n\nYou can access the web: use web_fetch to read any URL the user shares or that appears in the workspace context, and web_search when current information would improve the answer. Do not claim you cannot browse the web.`
+      : systemPrompt;
+
+    type ApiMessage = {
+      role: "user" | "assistant";
+      content: string | unknown[];
+    };
+    const apiMessages: ApiMessage[] = messages.map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    }));
+
+    // Attach saved documents + workspace context to the latest user message
+    const last = apiMessages[apiMessages.length - 1];
+    if (
+      attachments && last?.role === "user" && typeof last.content === "string"
+    ) {
+      last.content = [
+        ...attachments.blocks,
+        ...(attachments.contextText
+          ? [{
+            type: "text",
+            text:
+              `<workspace_context>\n${attachments.contextText}\n</workspace_context>`,
+          }]
+          : []),
+        { type: "text", text: last.content },
+      ];
+    }
+
+    // Determine if we're in development or production
+    const isDev = import.meta.env.DEV ||
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1";
+
+    const callClaude = async (
+      requestMessages: ApiMessage[],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ): Promise<any> => {
+      let response: Response;
+
+      if (isDev) {
+        // In development, call Claude directly (API key is in .env)
+        const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+        if (!apiKey) {
+          throw new Error("VITE_ANTHROPIC_API_KEY not configured in .env");
+        }
+
+        response = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model: resolvedModel,
+            max_tokens: 16000,
+            ...reasoningParams,
+            ...(tools ? { tools } : {}),
+            messages: requestMessages,
+            system,
+          }),
+        });
+      } else {
+        // In production, call via Netlify serverless function proxy
+        // (the proxy adds the same web tools server-side)
+        response = await fetch("/.netlify/functions/claude-proxy", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: resolvedModel,
+            effort: AI_EFFORT,
+            messages: requestMessages,
+            system,
+          }),
+        });
       }
 
-      response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `API error: ${response.status}`);
+      }
+
+      return await response.json();
+    };
+
+    let requestMessages = apiMessages;
+    let data = await callClaude(requestMessages);
+
+    // Server-side tools pause after their internal iteration limit
+    // (stop_reason "pause_turn"); re-sending with the assistant turn appended
+    // resumes where the server left off.
+    for (let i = 0; i < 5 && data.stop_reason === "pause_turn"; i++) {
+      requestMessages = [
+        ...requestMessages,
+        { role: "assistant", content: data.content },
+      ];
+      data = await callClaude(requestMessages);
+    }
+
+    // Normalize the Anthropic response. Text can be split across several
+    // blocks interleaved with thinking / server-tool blocks — join them all.
+    const text =
+      ((data.content ?? []) as Array<{ type: string; text?: string }>)
+        .filter((block) => block.type === "text")
+        .map((block) => block.text ?? "")
+        .join("\n\n");
+
+    const normalized: ChatResponse = {
+      id: data.id,
+      model: data.model,
+      choices: [
+        {
+          index: 0,
+          message: { role: "assistant", content: text },
+          finish_reason: data.stop_reason ?? "end_turn",
         },
-        body: JSON.stringify({
-          model: resolvedModel,
-          max_tokens: 16000,
-          ...reasoningParams,
-          messages: conversationMessages,
-          system: systemMessage?.content,
-        }),
-      });
-    } else {
-      // In production, call via Netlify serverless function proxy
-      response = await fetch("/.netlify/functions/claude-proxy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: resolvedModel,
-          effort: AI_EFFORT,
-          messages: conversationMessages,
-          system: systemMessage?.content,
-        }),
-      });
-    }
+      ],
+      usage: {
+        prompt_tokens: data.usage?.input_tokens ?? 0,
+        completion_tokens: data.usage?.output_tokens ?? 0,
+        total_tokens: (data.usage?.input_tokens ?? 0) +
+          (data.usage?.output_tokens ?? 0),
+      },
+    };
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        errorData.error || `API error: ${response.status}`,
-      );
-    }
-
-    const data = await response.json() as any;
-
-    // Normalize Anthropic response to expected format (for dev mode)
-    if (isDev && data.content) {
-      const normalized = {
-        id: data.id,
-        model: data.model,
-        choices: [
-          {
-            index: 0,
-            message: {
-              role: "assistant",
-              // With adaptive thinking the first block can be a thinking
-              // block — pick the text block explicitly.
-              content: data.content?.find(
-                (block: { type: string }) => block.type === "text",
-              )?.text ?? "",
-            },
-            finish_reason: data.stop_reason ?? "end_turn",
-          },
-        ],
-        usage: {
-          prompt_tokens: data.usage?.input_tokens ?? 0,
-          completion_tokens: data.usage?.output_tokens ?? 0,
-          total_tokens: (data.usage?.input_tokens ?? 0) +
-            (data.usage?.output_tokens ?? 0),
-        },
-      };
-      return { success: true, data: normalized };
-    }
-
-    return { success: true, data: data as ChatResponse };
+    return { success: true, data: normalized };
   } catch (error: unknown) {
     console.error("AI chat error:", error);
 
@@ -311,12 +463,16 @@ export async function sendMessage(
       { role: "user", content: userMessage },
     ];
 
+    // Saved documents (PDFs/images) and links for this view/issue/project
+    const attachments = await buildContextAttachments(contextType, contextId);
+
     const aiResult = await chat(
       chatMessages,
       model,
       systemPrompt,
       userId,
       projectId || undefined,
+      attachments,
     );
 
     if (!aiResult.success || !aiResult.data) {
