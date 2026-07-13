@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import type { AIContextType, ChatMessage } from "@/types";
 import { sendMessage } from "@/services/ai";
 import { AI_EFFORT, AI_MODEL_CONFIG } from "@/types/ai";
+import { getDocuments } from "@/services/document";
+import { getLinks } from "@/services/link";
 
 /** "claude-opus-4-8" -> "Claude Opus 4.8" */
 function formatModelName(model: string): string {
@@ -38,6 +40,9 @@ export function AIChatBox({ contextType, contextId, userId }: AIChatBoxProps) {
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sharedContext, setSharedContext] = useState<
+    { docs: number; links: number } | null
+  >(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const storageKey = `ai_chat_${contextType}_${contextId}`;
@@ -66,6 +71,26 @@ export function AIChatBox({ contextType, contextId, userId }: AIChatBoxProps) {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Count saved documents/links so users can see what the assistant reads
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      getDocuments(contextType, contextId),
+      getLinks(contextType, contextId),
+    ]).then(([docsResult, linksResult]) => {
+      if (cancelled) return;
+      setSharedContext({
+        docs: docsResult.data?.length ?? 0,
+        links: linksResult.data?.length ?? 0,
+      });
+    }).catch(() => {
+      if (!cancelled) setSharedContext(null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [contextType, contextId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -184,6 +209,27 @@ export function AIChatBox({ contextType, contextId, userId }: AIChatBoxProps) {
           </button>
         )}
       </div>
+
+      {/* Shared workspace context indicator */}
+      {sharedContext && (sharedContext.docs > 0 || sharedContext.links > 0) && (
+        <div className="px-4 py-1.5 border-b border-gray-700 text-xs text-gray-500">
+          📎 The assistant can read{" "}
+          {sharedContext.docs > 0 && (
+            <>
+              {sharedContext.docs} saved document
+              {sharedContext.docs === 1 ? "" : "s"}
+            </>
+          )}
+          {sharedContext.docs > 0 && sharedContext.links > 0 && " and "}
+          {sharedContext.links > 0 && (
+            <>
+              {sharedContext.links} saved link
+              {sharedContext.links === 1 ? "" : "s"}
+            </>
+          )}{" "}
+          from this workspace
+        </div>
+      )}
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[200px] max-h-[400px]">
