@@ -6,19 +6,32 @@
 export type AIContextType = "view" | "issue" | "project";
 
 export type AIModel =
+  | "claude-fable-5-1"
+  | "claude-fable-5"
+  | "claude-opus-5-5"
+  | "claude-opus-5"
   | "claude-opus-4-8"
-  | "claude-opus-4-5"
-  | "claude-sonnet-4-5"
+  | "claude-opus-4-7"
+  | "claude-opus-4-6"
+  | "claude-sonnet-5"
+  | "claude-sonnet-4-6"
   | "claude-haiku-4-5";
 
 /**
- * Models offered in the chat model picker, in display order.
+ * Models offered in the chat model picker, in display order
+ * (most to least capable).
  */
 export const AI_MODEL_OPTIONS: AIModel[] = [
+  "claude-fable-5-1",
+  "claude-fable-5",
+  "claude-opus-5-5",
+  "claude-opus-5",
   "claude-opus-4-8",
-  "claude-sonnet-4-5",
+  "claude-opus-4-7",
+  "claude-opus-4-6",
+  "claude-sonnet-5",
+  "claude-sonnet-4-6",
   "claude-haiku-4-5",
-  "claude-opus-4-5",
 ];
 
 export type AIEffort = "low" | "medium" | "high" | "xhigh" | "max";
@@ -113,10 +126,15 @@ export const AI_EFFORT: AIEffort =
 
 /**
  * Models that accept adaptive thinking + output_config.effort.
- * Older models (Opus 4.5, Sonnet 4.5, Haiku 4.5) reject those params with a 400,
- * so requests only include them when the model matches this list.
+ * Every current model supports adaptive thinking except Haiku 4.5, which
+ * still takes the older enabled/budget_tokens form and rejects these
+ * params with a 400.
  */
 const ADAPTIVE_THINKING_MODELS = [
+  "claude-fable-5-1",
+  "claude-fable-5",
+  "claude-opus-5-5",
+  "claude-opus-5",
   "claude-opus-4-8",
   "claude-opus-4-7",
   "claude-opus-4-6",

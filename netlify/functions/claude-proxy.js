@@ -36,9 +36,13 @@ export default async (req) => {
 
   const resolvedModel = model || "claude-opus-4-8";
 
-  // Adaptive thinking, effort, and the 20260209 web tools are only accepted
-  // by Opus 4.6+ / Sonnet 4.6+; older models reject them with a 400.
+  // Adaptive thinking, effort, and the 20260209 web tools are accepted by
+  // every current model except Haiku 4.5, which rejects them with a 400.
   const supportsAdaptiveThinking = [
+    "claude-fable-5-1",
+    "claude-fable-5",
+    "claude-opus-5-5",
+    "claude-opus-5",
     "claude-opus-4-8",
     "claude-opus-4-7",
     "claude-opus-4-6",
