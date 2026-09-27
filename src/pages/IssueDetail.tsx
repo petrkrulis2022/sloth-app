@@ -13,9 +13,10 @@ import {
   getSubIssues,
   createSubIssue,
   getProjects,
+  getView,
   getCurrentSession,
 } from "@/services";
-import type { Project, Issue } from "@/types";
+import type { Project, View, Issue } from "@/types";
 
 export function IssueDetail() {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +25,7 @@ export function IssueDetail() {
   const { addToast } = useToast();
 
   const [issue, setIssue] = useState<Issue | null>(null);
+  const [view, setView] = useState<View | null>(null);
   const [subIssues, setSubIssues] = useState<Issue[]>([]);
   const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,6 +55,12 @@ export function IssueDetail() {
       return;
     }
     setIssue(issueResult.data);
+
+    // Fetch parent view (for breadcrumb and sidebar project highlight)
+    const viewResult = await getView(issueResult.data.viewId);
+    if (viewResult.success && viewResult.data) {
+      setView(viewResult.data);
+    }
 
     // Fetch sub-issues
     const subIssuesResult = await getSubIssues(id);
@@ -188,11 +196,36 @@ export function IssueDetail() {
     );
   }
 
+  const parentProject = view
+    ? allProjects.find((p) => p.id === view.projectId)
+    : undefined;
+
   return (
     <AppLayout
       projects={allProjects}
+      activeProjectId={view?.projectId}
       onCreateProject={handleCreateProject}
       onSelectProject={handleSelectProject}
+      breadcrumb={[
+        ...(parentProject
+          ? [
+              {
+                label: parentProject.name,
+                onClick: () => navigate(`/project/${parentProject.id}`),
+              },
+            ]
+          : []),
+        ...(view
+          ? [
+              {
+                label: view.name,
+                icon: view.icon || undefined,
+                onClick: () => navigate(`/view/${view.id}`),
+              },
+            ]
+          : []),
+        { label: issue.name },
+      ]}
     >
       <div className="flex gap-6 h-full">
         {/* Main content area */}

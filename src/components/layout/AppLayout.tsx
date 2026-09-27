@@ -1,6 +1,7 @@
 import { ReactNode, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
+import { Breadcrumb, type BreadcrumbItem } from "./Breadcrumb";
 import { useCommand } from "@/contexts";
 import type { Project, View } from "@/types";
 
@@ -15,6 +16,7 @@ interface AppLayoutProps {
   onSelectView?: (viewId: string) => void;
   onCreateView?: () => void;
   onReorderViews?: (views: View[]) => void;
+  breadcrumb?: BreadcrumbItem[];
 }
 
 export function AppLayout({
@@ -28,6 +30,7 @@ export function AppLayout({
   onSelectView,
   onCreateView,
   onReorderViews,
+  breadcrumb = [],
 }: AppLayoutProps) {
   const navigate = useNavigate();
   const { openCommandPalette, appContext } = useCommand();
@@ -116,6 +119,9 @@ export function AppLayout({
 
       {/* Main content area */}
       <div className="flex-1 flex flex-col min-w-0">
+        {/* Breadcrumb showing Project > View > Issue depth */}
+        <Breadcrumb items={breadcrumb} />
+
         {/* Header with views and controls */}
         <header className="flex items-center justify-between px-6 py-4 border-b border-default bg-surface">
           {/* Horizontal Views List */}

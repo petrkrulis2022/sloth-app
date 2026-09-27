@@ -1,29 +1,36 @@
 import { useState, useEffect, useCallback } from "react";
 import { getNotes, addNote, deleteNote } from "@/services/note";
 import { getCurrentSession } from "@/services/auth";
-import type { NoteWithAuthor } from "@/types";
+import type { NoteContextType, NoteWithAuthor } from "@/types";
 
 export interface NotesBoxProps {
-  projectId: string;
+  contextType: NoteContextType;
+  contextId: string;
 }
 
+const LABEL_BY_CONTEXT: Record<NoteContextType, string> = {
+  project: "Project Notes",
+  view: "View Notes",
+};
+
 /**
- * Displays project notes in chronological order with author information
- * Similar to comments but for project-level notes
+ * Displays project or view notes in chronological order with author information
+ * Similar to comments but for project/view-level notes
  */
-export function NotesBox({ projectId }: NotesBoxProps) {
+export function NotesBox({ contextType, contextId }: NotesBoxProps) {
   const [notes, setNotes] = useState<NoteWithAuthor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [newNote, setNewNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const label = LABEL_BY_CONTEXT[contextType];
 
   // Fetch notes
   const fetchNotes = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
-    const result = await getNotes(projectId);
+    const result = await getNotes(contextType, contextId);
     if (result.success && result.data) {
       setNotes(result.data);
     } else {
@@ -31,7 +38,7 @@ export function NotesBox({ projectId }: NotesBoxProps) {
     }
 
     setIsLoading(false);
-  }, [projectId]);
+  }, [contextType, contextId]);
 
   useEffect(() => {
     fetchNotes();
@@ -52,7 +59,7 @@ export function NotesBox({ projectId }: NotesBoxProps) {
     setIsSubmitting(true);
     setError(null);
 
-    const result = await addNote(projectId, newNote, session.userId);
+    const result = await addNote(contextType, contextId, newNote, session.userId);
 
     if (result.success) {
       setNewNote("");
@@ -70,7 +77,7 @@ export function NotesBox({ projectId }: NotesBoxProps) {
       return;
     }
 
-    const result = await deleteNote(noteId);
+    const result = await deleteNote(contextType, noteId);
     if (result.success) {
       await fetchNotes();
     } else {
@@ -116,7 +123,7 @@ export function NotesBox({ projectId }: NotesBoxProps) {
               d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
             />
           </svg>
-          Project Notes
+          {label}
         </h3>
         <div className="text-sm text-muted animate-pulse">Loading notes...</div>
       </div>
@@ -139,7 +146,7 @@ export function NotesBox({ projectId }: NotesBoxProps) {
             d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
           />
         </svg>
-        Project Notes
+        {label}
         {notes.length > 0 && (
           <span className="text-xs text-muted">({notes.length})</span>
         )}

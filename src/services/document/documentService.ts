@@ -89,11 +89,12 @@ export async function uploadDocument(
   contextId: string,
   uploadedBy: string,
 ): Promise<DocumentResponse<Document>> {
-  if (!isAllowedFileType(file.type)) {
+  if (!isAllowedFileType(file.type, file.name)) {
     return {
       success: false,
       error: "INVALID_FILE_TYPE",
-      message: "File type not supported. Allowed: PDF, Office docs, Images.",
+      message:
+        "File type not supported. Allowed: PDF, Office docs, Images, Markdown.",
     };
   }
 

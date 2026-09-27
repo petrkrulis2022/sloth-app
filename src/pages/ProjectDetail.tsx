@@ -367,6 +367,7 @@ export function ProjectDetail() {
       views={views}
       onSelectView={handleSelectView}
       onReorderViews={handleReorderViews}
+      breadcrumb={[{ label: project.name }]}
     >
       <div className="flex gap-6 h-full">
         {/* Main content area */}
@@ -504,7 +505,7 @@ export function ProjectDetail() {
           </div>
 
           {/* Project Notes Section */}
-          <NotesBox projectId={project.id} />
+          <NotesBox contextType="project" contextId={project.id} />
         </div>
 
         {/* Right-hand sidebar - Only Documents and Links */}

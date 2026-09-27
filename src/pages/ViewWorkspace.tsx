@@ -4,6 +4,7 @@ import { AppLayout } from "@/components/layout";
 import { KanbanBoard } from "@/components/issue";
 import { DocumentsBox } from "@/components/document";
 import { LinksBox } from "@/components/link";
+import { NotesBox } from "@/components/note";
 import { AIChatBox } from "@/components/ai";
 import { IconPicker } from "@/components/view";
 import { useCommand } from "@/contexts";
@@ -326,6 +327,7 @@ export function ViewWorkspace() {
 
   // Filter to only show top-level issues (no parent)
   const topLevelIssues = issues.filter((issue) => !issue.parentId);
+  const parentProject = allProjects.find((p) => p.id === view.projectId);
 
   return (
     <AppLayout
@@ -333,6 +335,17 @@ export function ViewWorkspace() {
       activeProjectId={view.projectId}
       onCreateProject={handleCreateProject}
       onSelectProject={handleSelectProject}
+      breadcrumb={[
+        ...(parentProject
+          ? [
+              {
+                label: parentProject.name,
+                onClick: () => navigate(`/project/${parentProject.id}`),
+              },
+            ]
+          : []),
+        { label: view.name, icon: view.icon || undefined },
+      ]}
     >
       <div className="flex gap-6 h-full">
         {/* Main content area */}
@@ -416,6 +429,9 @@ export function ViewWorkspace() {
               userId={session?.userId || ""}
             />
           </div>
+
+          {/* View Notes Section */}
+          <NotesBox contextType="view" contextId={view.id} />
 
           {/* Issues section */}
           <div>

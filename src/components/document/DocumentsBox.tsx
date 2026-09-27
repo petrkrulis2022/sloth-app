@@ -9,7 +9,9 @@ import { getCurrentSession } from "@/services/auth";
 import {
   formatFileSize,
   getFileTypeLabel,
+  isAllowedFileType,
   ALLOWED_FILE_TYPES,
+  ALLOWED_FILE_EXTENSIONS,
   MAX_FILE_SIZE,
 } from "@/config/supabase";
 import type { DocumentWithUploader, DocumentContextType } from "@/types";
@@ -61,12 +63,10 @@ export function DocumentsBox({ contextType, contextId }: DocumentsBoxProps) {
     }
 
     // Validate file type
-    if (
-      !ALLOWED_FILE_TYPES.includes(
-        file.type as (typeof ALLOWED_FILE_TYPES)[number]
-      )
-    ) {
-      setError("File type not supported. Allowed: PDF, Office docs, Images.");
+    if (!isAllowedFileType(file.type, file.name)) {
+      setError(
+        "File type not supported. Allowed: PDF, Office docs, Images, Markdown."
+      );
       return;
     }
 
@@ -359,7 +359,7 @@ export function DocumentsBox({ contextType, contextId }: DocumentsBoxProps) {
           ref={fileInputRef}
           type="file"
           onChange={handleFileChange}
-          accept={ALLOWED_FILE_TYPES.join(",")}
+          accept={[...ALLOWED_FILE_TYPES, ...ALLOWED_FILE_EXTENSIONS].join(",")}
           className="hidden"
           disabled={isUploading}
         />
@@ -378,7 +378,8 @@ export function DocumentsBox({ contextType, contextId }: DocumentsBoxProps) {
           )}
         </button>
         <p className="text-xs text-muted mt-1">
-          PDF, Office docs, Images (max {MAX_FILE_SIZE / (1024 * 1024)}MB)
+          PDF, Office docs, Images, Markdown (max{" "}
+          {MAX_FILE_SIZE / (1024 * 1024)}MB)
         </p>
       </div>
     </div>

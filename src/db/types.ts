@@ -121,6 +121,33 @@ export interface Database {
         };
         Relationships: [];
       };
+      view_notes: {
+        Row: {
+          id: string;
+          view_id: string;
+          content: string;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          view_id: string;
+          content: string;
+          created_by: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          view_id?: string;
+          content?: string;
+          created_by?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       invitations: {
         Row: {
           id: string;

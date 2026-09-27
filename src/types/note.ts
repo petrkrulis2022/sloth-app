@@ -1,6 +1,12 @@
+/**
+ * Context type for notes - can be attached to projects or views
+ */
+export type NoteContextType = "project" | "view";
+
 export interface Note {
   id: string;
-  projectId: string;
+  contextType: NoteContextType;
+  contextId: string;
   content: string;
   createdBy: string;
   createdAt: Date;

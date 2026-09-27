@@ -73,6 +73,24 @@ After applying this migration, you also need to:
 
 ---
 
+## Missing Table: view_notes
+
+**Status**: ❌ Not yet applied
+**Required for**: The "View Notes" section in the View workspace (between the AI assistant and Issues)
+**Priority**: High (View Notes won't load or save without this)
+
+### Migration SQL
+
+Run [add-view-notes-table.sql](./add-view-notes-table.sql) in your Supabase SQL Editor. It creates a `view_notes` table mirroring `project_notes`, scoped to `view_id` instead of `project_id`, with RLS left disabled to match `project_notes` (see [disable-rls-project-notes.sql](./disable-rls-project-notes.sql) — the app uses custom wallet/email auth, not Supabase Auth, so `auth.uid()`-based policies don't apply).
+
+### Verification
+
+```sql
+SELECT table_name FROM information_schema.tables WHERE table_name = 'view_notes';
+```
+
+---
+
 ## Future Migrations
 
 As the app evolves, add new migrations here with:

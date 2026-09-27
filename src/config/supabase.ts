@@ -41,7 +41,25 @@ export const ALLOWED_FILE_TYPES = [
   "image/gif",
   "image/webp",
   "image/svg+xml",
+  // Markdown
+  "text/markdown",
+  "text/x-markdown",
 ] as const;
+
+/**
+ * File extensions accepted in addition to ALLOWED_FILE_TYPES.
+ * Browsers/OSes report inconsistent (or empty) MIME types for some
+ * extensions, so uploads are also allowed through by filename extension.
+ */
+export const ALLOWED_FILE_EXTENSIONS = [".md", ".markdown"] as const;
+
+/**
+ * Checks whether a file name ends in one of ALLOWED_FILE_EXTENSIONS
+ */
+export function hasAllowedFileExtension(fileName: string): boolean {
+  const lower = fileName.toLowerCase();
+  return ALLOWED_FILE_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}
 
 /**
  * File type extensions mapping for display
@@ -61,15 +79,22 @@ export const FILE_TYPE_EXTENSIONS: Record<string, string> = {
   "image/gif": "GIF",
   "image/webp": "WEBP",
   "image/svg+xml": "SVG",
+  "text/markdown": "MD",
+  "text/x-markdown": "MD",
 };
 
 /**
- * Validates if a file type is allowed for upload
+ * Validates if a file type is allowed for upload.
+ * Falls back to checking the filename extension since browsers/OSes
+ * report inconsistent (or empty) MIME types for some extensions (e.g. .md).
  */
-export function isAllowedFileType(mimeType: string): boolean {
-  return ALLOWED_FILE_TYPES.includes(
-    mimeType as (typeof ALLOWED_FILE_TYPES)[number]
-  );
+export function isAllowedFileType(mimeType: string, fileName?: string): boolean {
+  if (
+    ALLOWED_FILE_TYPES.includes(mimeType as (typeof ALLOWED_FILE_TYPES)[number])
+  ) {
+    return true;
+  }
+  return !!fileName && hasAllowedFileExtension(fileName);
 }
 
 /**
