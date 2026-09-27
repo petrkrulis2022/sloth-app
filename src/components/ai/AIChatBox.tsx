@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import type { AIContextType, ChatMessage } from "@/types";
+import type { AIContextType, AIModel, ChatMessage } from "@/types";
 import { sendMessage } from "@/services/ai";
-import { AI_EFFORT, AI_MODEL_CONFIG } from "@/types/ai";
+import { AI_EFFORT, AI_MODEL_CONFIG, AI_MODEL_OPTIONS } from "@/types/ai";
 import { getDocuments } from "@/services/document";
 import { getLinks } from "@/services/link";
 
@@ -46,6 +46,21 @@ export function AIChatBox({ contextType, contextId, userId }: AIChatBoxProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const storageKey = `ai_chat_${contextType}_${contextId}`;
+  const modelStorageKey = `ai_model_${contextType}_${contextId}`;
+  const defaultModel = contextType === "view"
+    ? AI_MODEL_CONFIG.view
+    : AI_MODEL_CONFIG.issue;
+
+  const [selectedModel, setSelectedModel] = useState<AIModel>(defaultModel);
+
+  const handleModelChange = (model: AIModel) => {
+    setSelectedModel(model);
+    try {
+      localStorage.setItem(modelStorageKey, model);
+    } catch (err) {
+      console.warn("Failed to save model preference to localStorage:", err);
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -66,6 +81,21 @@ export function AIChatBox({ contextType, contextId, userId }: AIChatBoxProps) {
       setMessages([]);
     }
   }, [storageKey]);
+
+  // Load the saved model preference on mount or context change
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(modelStorageKey);
+      if (stored && (AI_MODEL_OPTIONS as string[]).includes(stored)) {
+        setSelectedModel(stored as AIModel);
+        return;
+      }
+    } catch {
+      // ignore localStorage access errors
+    }
+    setSelectedModel(defaultModel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modelStorageKey]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -113,7 +143,8 @@ export function AIChatBox({ contextType, contextId, userId }: AIChatBoxProps) {
       contextId,
       trimmedInput,
       userId,
-      conversationHistory
+      conversationHistory,
+      selectedModel
     );
 
     if (result.success && result.data) {
@@ -165,11 +196,6 @@ export function AIChatBox({ contextType, contextId, userId }: AIChatBoxProps) {
   };
 
   const contextLabel = contextType === "view" ? "Strategic" : "Technical";
-  // Same selection logic as sendMessage: "view" uses the view model,
-  // everything else uses the issue model.
-  const activeModel = contextType === "view"
-    ? AI_MODEL_CONFIG.view
-    : AI_MODEL_CONFIG.issue;
 
   return (
     <div className="flex flex-col h-full bg-gray-900 rounded-lg border border-gray-700">
@@ -192,12 +218,19 @@ export function AIChatBox({ contextType, contextId, userId }: AIChatBoxProps) {
           <h3 className="text-sm font-medium text-white">
             AI {contextLabel} Assistant
           </h3>
-          <span
-            title={`${activeModel} · ${AI_EFFORT} effort`}
-            className="text-xs text-gray-400 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5"
+          <select
+            value={selectedModel}
+            onChange={(e) => handleModelChange(e.target.value as AIModel)}
+            title={`${selectedModel} · ${AI_EFFORT} effort`}
+            disabled={isLoading}
+            className="text-xs text-gray-400 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 hover:border-gray-600 focus:outline-none focus:border-teal-600 disabled:opacity-50"
           >
-            {formatModelName(activeModel)}
-          </span>
+            {AI_MODEL_OPTIONS.map((model) => (
+              <option key={model} value={model}>
+                {formatModelName(model)}
+              </option>
+            ))}
+          </select>
         </div>
         {messages.length > 0 && (
           <button

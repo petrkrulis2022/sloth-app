@@ -11,6 +11,16 @@ export type AIModel =
   | "claude-sonnet-4-5"
   | "claude-haiku-4-5";
 
+/**
+ * Models offered in the chat model picker, in display order.
+ */
+export const AI_MODEL_OPTIONS: AIModel[] = [
+  "claude-opus-4-8",
+  "claude-sonnet-4-5",
+  "claude-haiku-4-5",
+  "claude-opus-4-5",
+];
+
 export type AIEffort = "low" | "medium" | "high" | "xhigh" | "max";
 
 export type AIMessageRole = "user" | "assistant" | "system";

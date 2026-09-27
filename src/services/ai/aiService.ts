@@ -540,6 +540,7 @@ export async function sendMessage(
   userMessage: string,
   userId: string,
   conversationHistory: ChatMessage[] = [],
+  modelOverride?: AIModel,
 ): Promise<AIResponse<{ userMessage: string; aiResponse: string }>> {
   if (!userMessage || userMessage.trim().length === 0) {
     return {
@@ -562,9 +563,8 @@ export async function sendMessage(
 
     const projectId = await getProjectIdForContext(contextType, contextId);
 
-    const model = contextType === "view"
-      ? AI_MODEL_CONFIG.view
-      : AI_MODEL_CONFIG.issue;
+    const model = modelOverride ||
+      (contextType === "view" ? AI_MODEL_CONFIG.view : AI_MODEL_CONFIG.issue);
     const systemPrompt = contextType === "view"
       ? AI_SYSTEM_PROMPTS.view
       : AI_SYSTEM_PROMPTS.issue;
