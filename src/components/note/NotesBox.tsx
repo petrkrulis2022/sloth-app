@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { getNotes, addNote, deleteNote } from "@/services/note";
+import { getNotes, addNote, updateNote, deleteNote } from "@/services/note";
 import { getCurrentSession } from "@/services/auth";
 import type { NoteContextType, NoteWithAuthor } from "@/types";
 
@@ -23,6 +23,9 @@ export function NotesBox({ contextType, contextId }: NotesBoxProps) {
   const [error, setError] = useState<string | null>(null);
   const [newNote, setNewNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
   const label = LABEL_BY_CONTEXT[contextType];
 
   // Fetch notes
@@ -69,6 +72,37 @@ export function NotesBox({ contextType, contextId }: NotesBoxProps) {
     }
 
     setIsSubmitting(false);
+  };
+
+  // Handle starting an edit
+  const handleStartEdit = (note: NoteWithAuthor) => {
+    setEditingNoteId(note.id);
+    setEditContent(note.content);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingNoteId(null);
+    setEditContent("");
+  };
+
+  // Handle saving an edited note
+  const handleSaveEdit = async (noteId: string) => {
+    if (!editContent.trim()) return;
+
+    setIsSavingEdit(true);
+    setError(null);
+
+    const result = await updateNote(contextType, noteId, editContent);
+
+    if (result.success) {
+      setEditingNoteId(null);
+      setEditContent("");
+      await fetchNotes();
+    } else {
+      setError(result.message || "Failed to update note.");
+    }
+
+    setIsSavingEdit(false);
   };
 
   // Handle deleting a note
@@ -186,29 +220,81 @@ export function NotesBox({ contextType, contextId }: NotesBoxProps) {
                     {formatDate(note.createdAt)}
                   </span>
                 </div>
-                <button
-                  onClick={() => handleDelete(note.id)}
-                  className="opacity-0 group-hover:opacity-100 text-muted hover:text-red-400 transition-all p-1"
-                  title="Delete note"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    />
-                  </svg>
-                </button>
+                {editingNoteId !== note.id && (
+                  <div className="opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1">
+                    <button
+                      onClick={() => handleStartEdit(note)}
+                      className="text-muted hover:text-teal-400 p-1"
+                      title="Edit note"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => handleDelete(note.id)}
+                      className="text-muted hover:text-red-400 p-1"
+                      title="Delete note"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                )}
               </div>
-              <p className="text-sm text-secondary whitespace-pre-wrap">
-                {note.content}
-              </p>
+              {editingNoteId === note.id ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    className="w-full px-3 py-2 bg-background border border-default rounded-md text-sm text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 resize-none"
+                    rows={3}
+                    disabled={isSavingEdit}
+                    autoFocus
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={handleCancelEdit}
+                      disabled={isSavingEdit}
+                      className="px-3 py-1 text-xs text-secondary hover:text-primary transition-colors disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => handleSaveEdit(note.id)}
+                      disabled={!editContent.trim() || isSavingEdit}
+                      className="px-3 py-1 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-600/50 disabled:cursor-not-allowed text-white rounded-md text-xs font-medium transition-colors"
+                    >
+                      {isSavingEdit ? "Saving..." : "Save"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-secondary whitespace-pre-wrap">
+                  {note.content}
+                </p>
+              )}
             </div>
           ))
         )}

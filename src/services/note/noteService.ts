@@ -156,6 +156,48 @@ export async function addNote(
 }
 
 /**
+ * Updates the content of an existing note
+ */
+export async function updateNote(
+  contextType: NoteContextType,
+  noteId: string,
+  content: string
+): Promise<NoteResponse<void>> {
+  if (!content.trim()) {
+    return {
+      success: false,
+      error: "UNKNOWN_ERROR",
+      message: "Note content is required.",
+    };
+  }
+
+  try {
+    const table = TABLE_BY_CONTEXT[contextType];
+    const { error } = await db
+      .from(table)
+      .update({ content: content.trim(), updated_at: new Date().toISOString() })
+      .eq("id", noteId);
+
+    if (error) {
+      return {
+        success: false,
+        error: "UNKNOWN_ERROR",
+        message: "Failed to update note.",
+      };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Update note error:", error);
+    return {
+      success: false,
+      error: "UNKNOWN_ERROR",
+      message: "Failed to update note.",
+    };
+  }
+}
+
+/**
  * Deletes a note
  */
 export async function deleteNote(
