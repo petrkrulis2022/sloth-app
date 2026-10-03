@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
-import { getComments, addComment } from "@/services/comment";
+import {
+  getComments,
+  addComment,
+  updateComment,
+  deleteComment,
+} from "@/services/comment";
 import { getCurrentSession } from "@/services/auth";
 import type { CommentWithAuthor } from "@/types";
 
@@ -8,8 +13,8 @@ export interface CommentBoxProps {
 }
 
 /**
- * Displays comments in chronological order with author information
- * Supports threaded replies and adding new comments
+ * Displays issue notes in chronological order with author information.
+ * Supports threaded replies, editing, and deleting.
  * Requirements: 11.1, 11.2, 11.3, 11.4
  */
 export function CommentBox({ issueId }: CommentBoxProps) {
@@ -20,6 +25,11 @@ export function CommentBox({ issueId }: CommentBoxProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(
+    null
+  );
+  const [editContent, setEditContent] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   // Fetch comments
   const fetchComments = useCallback(async () => {
@@ -30,7 +40,7 @@ export function CommentBox({ issueId }: CommentBoxProps) {
     if (result.success && result.data) {
       setComments(result.data);
     } else {
-      setError(result.message || "Failed to load comments.");
+      setError(result.message || "Failed to load notes.");
     }
 
     setIsLoading(false);
@@ -48,7 +58,7 @@ export function CommentBox({ issueId }: CommentBoxProps) {
 
     const session = getCurrentSession();
     if (!session) {
-      setError("You must be logged in to comment.");
+      setError("You must be logged in to add a note.");
       return;
     }
 
@@ -62,7 +72,7 @@ export function CommentBox({ issueId }: CommentBoxProps) {
       await fetchComments();
       setNewComment("");
     } else {
-      setError(result.message || "Failed to add comment.");
+      setError(result.message || "Failed to add note.");
     }
 
     setIsSubmitting(false);
@@ -100,6 +110,49 @@ export function CommentBox({ issueId }: CommentBoxProps) {
     setIsSubmitting(false);
   };
 
+  // Handle starting an edit
+  const handleStartEdit = (comment: CommentWithAuthor) => {
+    setEditingCommentId(comment.id);
+    setEditContent(comment.content);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCommentId(null);
+    setEditContent("");
+  };
+
+  // Handle saving an edited note
+  const handleSaveEdit = async (commentId: string) => {
+    if (!editContent.trim()) return;
+
+    setIsSavingEdit(true);
+    setError(null);
+
+    const result = await updateComment(commentId, editContent);
+
+    if (result.success) {
+      setEditingCommentId(null);
+      setEditContent("");
+      await fetchComments();
+    } else {
+      setError(result.message || "Failed to update note.");
+    }
+
+    setIsSavingEdit(false);
+  };
+
+  // Handle deleting a note
+  const handleDelete = async (commentId: string) => {
+    if (!confirm("Are you sure you want to delete this note?")) return;
+
+    const result = await deleteComment(commentId);
+    if (result.success) {
+      await fetchComments();
+    } else {
+      setError(result.message || "Failed to delete note.");
+    }
+  };
+
   // Format date for display
   const formatDate = (date: Date) => {
     const d = new Date(date);
@@ -134,19 +187,92 @@ export function CommentBox({ issueId }: CommentBoxProps) {
       key={comment.id}
       className={`${isReply ? "ml-6 border-l-2 border-default pl-4" : ""}`}
     >
-      <div className="bg-app rounded-md p-3 mb-2">
+      <div className="bg-app rounded-md p-3 mb-2 group">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-primary">
             {getAuthorDisplayName(comment.author)}
           </span>
-          <span className="text-xs text-muted">
-            {formatDate(comment.createdAt)}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted">
+              {formatDate(comment.createdAt)}
+            </span>
+            {editingCommentId !== comment.id && (
+              <div className="opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1">
+                <button
+                  onClick={() => handleStartEdit(comment)}
+                  className="text-muted hover:text-teal-400 p-0.5"
+                  title="Edit note"
+                >
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                    />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => handleDelete(comment.id)}
+                  className="text-muted hover:text-red-400 p-0.5"
+                  title="Delete note"
+                >
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
+                  </svg>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-        <p className="text-sm text-secondary whitespace-pre-wrap">
-          {comment.content}
-        </p>
-        {!isReply && (
+        {editingCommentId === comment.id ? (
+          <div className="space-y-2">
+            <textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              className="w-full px-3 py-2 bg-background border border-default rounded-md text-sm text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 resize-none"
+              rows={3}
+              disabled={isSavingEdit}
+              autoFocus
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={handleCancelEdit}
+                disabled={isSavingEdit}
+                className="px-3 py-1 text-xs text-secondary hover:text-primary transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleSaveEdit(comment.id)}
+                disabled={!editContent.trim() || isSavingEdit}
+                className="px-3 py-1 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-600/50 disabled:cursor-not-allowed text-white rounded-md text-xs font-medium transition-colors"
+              >
+                {isSavingEdit ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-secondary whitespace-pre-wrap">
+            {comment.content}
+          </p>
+        )}
+        {!isReply && editingCommentId !== comment.id && (
           <button
             onClick={() => {
               setReplyingTo(comment.id);
@@ -221,13 +347,13 @@ export function CommentBox({ issueId }: CommentBoxProps) {
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={2}
-              d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
+              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
             />
           </svg>
-          Comments
+          Notes
         </h3>
         <div className="text-sm text-muted animate-pulse">
-          Loading comments...
+          Loading notes...
         </div>
       </div>
     );
@@ -246,10 +372,10 @@ export function CommentBox({ issueId }: CommentBoxProps) {
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth={2}
-            d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
+            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
           />
         </svg>
-        Comments
+        Notes
         {comments.length > 0 && (
           <span className="text-xs text-muted">({comments.length})</span>
         )}
@@ -262,23 +388,23 @@ export function CommentBox({ issueId }: CommentBoxProps) {
         </div>
       )}
 
-      {/* Comments list */}
+      {/* Notes list */}
       <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
         {topLevelComments.length === 0 ? (
-          <div className="text-sm text-muted">No comments yet.</div>
+          <div className="text-sm text-muted">No notes yet.</div>
         ) : (
           topLevelComments.map((comment) => renderComment(comment))
         )}
       </div>
 
-      {/* New comment input */}
+      {/* New note input */}
       <form onSubmit={handleAddComment} className="mt-3">
         <div className="flex gap-2">
           <input
             type="text"
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Add a comment..."
+            placeholder="Add a note..."
             className="flex-1 px-3 py-2 bg-app border border-default rounded-md text-sm text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             disabled={isSubmitting}
           />

@@ -204,6 +204,46 @@ export async function addComment(
 }
 
 /**
+ * Updates the content of an existing comment
+ */
+export async function updateComment(
+  commentId: string,
+  content: string
+): Promise<CommentResponse<void>> {
+  if (!validateCommentContent(content)) {
+    return {
+      success: false,
+      error: "INVALID_CONTENT",
+      message: "Comment content is required.",
+    };
+  }
+
+  try {
+    const { error } = await db
+      .from("comments")
+      .update({ content: content.trim(), updated_at: new Date().toISOString() })
+      .eq("id", commentId);
+
+    if (error) {
+      return {
+        success: false,
+        error: "UNKNOWN_ERROR",
+        message: "Failed to update comment.",
+      };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Update comment error:", error);
+    return {
+      success: false,
+      error: "UNKNOWN_ERROR",
+      message: "Failed to update comment.",
+    };
+  }
+}
+
+/**
  * Deletes a comment
  */
 export async function deleteComment(

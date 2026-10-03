@@ -353,7 +353,7 @@ export function IssueDetail() {
             )}
           </div>
 
-          {/* Comments section */}
+          {/* Notes section */}
           <div className="bg-surface border border-default rounded-lg p-4">
             <CommentBox issueId={issue.id} />
           </div>
