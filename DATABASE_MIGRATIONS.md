@@ -91,6 +91,25 @@ SELECT table_name FROM information_schema.tables WHERE table_name = 'view_notes'
 
 ---
 
+## Missing Column: issues.project_id (Project Tasks)
+
+**Status**: ❌ Not yet applied
+**Required for**: The "Project Tasks" section on the Project page
+**Priority**: High (creating/loading project tasks will fail without this)
+
+### Migration SQL
+
+Run [add-issues-project-tasks.sql](./add-issues-project-tasks.sql) in your Supabase SQL Editor. It makes `issues.view_id` nullable and adds a nullable `issues.project_id` (FK to `projects`, cascade delete), plus a check constraint requiring exactly one of `view_id`/`project_id` to be set. Project Tasks are just issues with `project_id` set instead of `view_id` — they reuse the same table, the same Issue detail page, and the same not-started/in-progress/done status.
+
+### Verification
+
+```sql
+SELECT column_name, is_nullable FROM information_schema.columns
+WHERE table_name = 'issues' AND column_name IN ('view_id', 'project_id');
+```
+
+---
+
 ## Future Migrations
 
 As the app evolves, add new migrations here with:

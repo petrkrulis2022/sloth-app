@@ -50,7 +50,10 @@ export type IssueStatus = "not-started" | "in-progress" | "done";
 
 export interface Issue {
   id: string;
-  viewId: string;
+  /** Set when this issue belongs to a View; null for a project-level task. */
+  viewId: string | null;
+  /** Set when this issue is a project-level task created directly under a Project. */
+  projectId: string | null;
   parentId: string | null;
   name: string;
   issueId: string | null;

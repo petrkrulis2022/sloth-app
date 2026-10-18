@@ -46,11 +46,15 @@ async function getProjectIdForContext(
   } else {
     const { data: issue } = await db
       .from("issues")
-      .select("view_id")
+      .select("view_id, project_id")
       .eq("id", contextId)
       .single();
 
     if (!issue) return null;
+
+    // A project task's issue row points straight at its project - no view.
+    if (issue.project_id) return issue.project_id;
+    if (!issue.view_id) return null;
 
     const { data: view } = await db
       .from("views")

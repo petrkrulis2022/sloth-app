@@ -7,6 +7,7 @@ import type { Issue } from "@/types";
 export type IssueError =
   | "ISSUE_NOT_FOUND"
   | "VIEW_NOT_FOUND"
+  | "PROJECT_NOT_FOUND"
   | "PARENT_NOT_FOUND"
   | "INVALID_NAME"
   | "UNKNOWN_ERROR";
@@ -23,7 +24,8 @@ export interface IssueResponse<T> {
  */
 function toIssue(dbIssue: {
   id: string;
-  view_id: string;
+  view_id: string | null;
+  project_id?: string | null;
   parent_id: string | null;
   name: string;
   issue_id: string | null;
@@ -37,6 +39,7 @@ function toIssue(dbIssue: {
   return {
     id: dbIssue.id,
     viewId: dbIssue.view_id,
+    projectId: dbIssue.project_id || null,
     parentId: dbIssue.parent_id,
     name: dbIssue.name,
     issueId: dbIssue.issue_id,
@@ -92,6 +95,50 @@ export async function getIssues(
       success: false,
       error: "UNKNOWN_ERROR",
       message: "Failed to fetch issues.",
+    };
+  }
+}
+
+/**
+ * Gets all project-level tasks (issues created directly under a project,
+ * not under any view)
+ */
+export async function getProjectTasks(
+  projectId: string,
+  includeSubIssues: boolean = false
+): Promise<IssueResponse<Issue[]>> {
+  try {
+    const { data: project } = await db
+      .from("projects")
+      .select("id")
+      .eq("id", projectId)
+      .single();
+
+    if (!project) {
+      return {
+        success: false,
+        error: "PROJECT_NOT_FOUND",
+        message: "Project not found.",
+      };
+    }
+
+    let query = db.from("issues").select("*").eq("project_id", projectId);
+
+    if (!includeSubIssues) {
+      query = query.is("parent_id", null);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    return { success: true, data: (data || []).map(toIssue) };
+  } catch (error) {
+    console.error("Get project tasks error:", error);
+    return {
+      success: false,
+      error: "UNKNOWN_ERROR",
+      message: "Failed to fetch project tasks.",
     };
   }
 }
@@ -192,6 +239,71 @@ export async function createIssue(
 }
 
 /**
+ * Creates a new task directly under a project (no view)
+ */
+export async function createProjectTask(
+  projectId: string,
+  name: string,
+  description: string | null,
+  createdBy: string,
+  issueId?: string | null
+): Promise<IssueResponse<Issue>> {
+  if (!validateIssueName(name)) {
+    return {
+      success: false,
+      error: "INVALID_NAME",
+      message: "Task name is required.",
+    };
+  }
+
+  try {
+    const { data: project } = await db
+      .from("projects")
+      .select("id")
+      .eq("id", projectId)
+      .single();
+
+    if (!project) {
+      return {
+        success: false,
+        error: "PROJECT_NOT_FOUND",
+        message: "Project not found.",
+      };
+    }
+
+    const { data, error } = await db
+      .from("issues")
+      .insert({
+        project_id: projectId,
+        name: name.trim(),
+        issue_id: issueId?.trim() || null,
+        description: description?.trim() || null,
+        status: "not-started",
+        created_by: createdBy,
+      })
+      .select()
+      .single();
+
+    if (error || !data) {
+      return {
+        success: false,
+        error: "UNKNOWN_ERROR",
+        message: "Failed to create task.",
+      };
+    }
+
+    return { success: true, data: toIssue(data) };
+  } catch (error) {
+    console.error("Create project task error:", error);
+    return {
+      success: false,
+      error: "UNKNOWN_ERROR",
+      message: "Failed to create task.",
+    };
+  }
+}
+
+/**
  * Creates a sub-issue under a parent issue
  */
 export async function createSubIssue(
@@ -211,7 +323,7 @@ export async function createSubIssue(
   try {
     const { data: parentIssue } = await db
       .from("issues")
-      .select("view_id")
+      .select("view_id, project_id")
       .eq("id", parentId)
       .single();
 
@@ -227,6 +339,7 @@ export async function createSubIssue(
       .from("issues")
       .insert({
         view_id: parentIssue.view_id,
+        project_id: parentIssue.project_id,
         parent_id: parentId,
         name: name.trim(),
         description: description?.trim() || null,

@@ -112,6 +112,7 @@ export function ViewWorkspace() {
     const optimisticIssue: Issue = {
       id: tempId,
       viewId: id,
+      projectId: null,
       parentId: null,
       name: newIssueName,
       issueId: newIssueId || null,

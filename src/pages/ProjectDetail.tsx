@@ -5,6 +5,7 @@ import { InviteCollaboratorModal } from "@/components/invitation";
 import { DocumentsBox } from "@/components/document";
 import { LinksBox } from "@/components/link";
 import { NotesBox } from "@/components/note";
+import { ProjectTasksBox } from "@/components/issue";
 import { AIChatBox } from "@/components/ai";
 import { IconPicker } from "@/components/view";
 import { useCommand } from "@/contexts";
@@ -504,8 +505,14 @@ export function ProjectDetail() {
             />
           </div>
 
-          {/* Project Notes Section */}
-          <NotesBox contextType="project" contextId={project.id} />
+          {/* Project Notes + Project Tasks - 50/50 split */}
+          <div className="grid grid-cols-2 gap-6 items-start">
+            <NotesBox contextType="project" contextId={project.id} />
+            <ProjectTasksBox
+              projectId={project.id}
+              createdBy={getCurrentSession()?.userId || ""}
+            />
+          </div>
         </div>
 
         {/* Right-hand sidebar - Only Documents and Links */}

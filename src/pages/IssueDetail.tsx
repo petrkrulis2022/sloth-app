@@ -56,10 +56,15 @@ export function IssueDetail() {
     }
     setIssue(issueResult.data);
 
-    // Fetch parent view (for breadcrumb and sidebar project highlight)
-    const viewResult = await getView(issueResult.data.viewId);
-    if (viewResult.success && viewResult.data) {
-      setView(viewResult.data);
+    // Fetch parent view (for breadcrumb and sidebar project highlight) -
+    // a project task has no view, so skip this for those.
+    if (issueResult.data.viewId) {
+      const viewResult = await getView(issueResult.data.viewId);
+      if (viewResult.success && viewResult.data) {
+        setView(viewResult.data);
+      }
+    } else {
+      setView(null);
     }
 
     // Fetch sub-issues
@@ -104,6 +109,7 @@ export function IssueDetail() {
     const optimisticSubIssue: Issue = {
       id: tempId,
       viewId: issue.viewId,
+      projectId: issue.projectId,
       parentId: id,
       name: newSubIssueName,
       issueId: null,
@@ -196,14 +202,16 @@ export function IssueDetail() {
     );
   }
 
-  const parentProject = view
-    ? allProjects.find((p) => p.id === view.projectId)
+  // A project task has no view - fall back to the issue's own projectId.
+  const parentProjectId = view?.projectId || issue.projectId || undefined;
+  const parentProject = parentProjectId
+    ? allProjects.find((p) => p.id === parentProjectId)
     : undefined;
 
   return (
     <AppLayout
       projects={allProjects}
-      activeProjectId={view?.projectId}
+      activeProjectId={parentProjectId}
       onCreateProject={handleCreateProject}
       onSelectProject={handleSelectProject}
       breadcrumb={[

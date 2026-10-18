@@ -226,7 +226,8 @@ export interface Database {
       issues: {
         Row: {
           id: string;
-          view_id: string;
+          view_id: string | null;
+          project_id: string | null;
           parent_id: string | null;
           name: string;
           issue_id: string | null;
@@ -239,7 +240,8 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          view_id: string;
+          view_id?: string | null;
+          project_id?: string | null;
           parent_id?: string | null;
           name: string;
           issue_id?: string | null;
@@ -252,7 +254,8 @@ export interface Database {
         };
         Update: {
           id?: string;
-          view_id?: string;
+          view_id?: string | null;
+          project_id?: string | null;
           parent_id?: string | null;
           name?: string;
           issue_id?: string | null;
