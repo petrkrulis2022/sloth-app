@@ -6,35 +6,13 @@ import {
   updateIssue,
   deleteIssue,
 } from "@/services/issue";
+import { KanbanBoard } from "./KanbanBoard";
 import type { Issue, IssueStatus } from "@/types";
 
 export interface ProjectTasksBoxProps {
   projectId: string;
   createdBy: string;
 }
-
-const STATUS_CONFIG: Record<
-  IssueStatus,
-  { label: string; dotColor: string; borderColor: string }
-> = {
-  "not-started": {
-    label: "Not Started",
-    dotColor: "bg-gray-500",
-    borderColor: "border-gray-700",
-  },
-  "in-progress": {
-    label: "In Progress",
-    dotColor: "bg-blue-500",
-    borderColor: "border-blue-700",
-  },
-  done: {
-    label: "Done",
-    dotColor: "bg-teal-500",
-    borderColor: "border-teal-700",
-  },
-};
-
-const STATUS_ORDER: IssueStatus[] = ["not-started", "in-progress", "done"];
 
 /**
  * Project-level tasks - issues created directly under a project (no view).
@@ -169,9 +147,6 @@ export function ProjectTasksBox({ projectId, createdBy }: ProjectTasksBoxProps) 
     }
   };
 
-  const getTasksByStatus = (status: IssueStatus) =>
-    tasks.filter((t) => t.status === status);
-
   return (
     <div className="bg-surface border border-default rounded-lg p-4 flex flex-col">
       <div className="flex items-center justify-between mb-3">
@@ -234,124 +209,13 @@ export function ProjectTasksBox({ projectId, createdBy }: ProjectTasksBoxProps) 
           No tasks yet. Add your first task above.
         </div>
       ) : (
-        <div className="space-y-4 max-h-96 overflow-y-auto">
-          {STATUS_ORDER.map((status) => {
-            const statusTasks = getTasksByStatus(status);
-            if (statusTasks.length === 0) return null;
-            const config = STATUS_CONFIG[status];
-
-            return (
-              <div key={status}>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className={`w-2 h-2 rounded-full ${config.dotColor}`} />
-                  <span className="text-xs font-medium text-secondary uppercase tracking-wide">
-                    {config.label}
-                  </span>
-                  <span className="text-xs text-muted">
-                    {statusTasks.length}
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {statusTasks.map((task) => (
-                    <div
-                      key={task.id}
-                      className={`bg-app border ${config.borderColor} rounded-md p-3 group`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <button
-                          onClick={() => navigate(`/issue/${task.id}`)}
-                          className="text-left text-sm font-medium text-primary hover:text-teal-400 transition-colors flex-1 min-w-0"
-                        >
-                          <span className="block truncate">{task.name}</span>
-                          {task.issueId && (
-                            <span className="text-xs font-mono text-muted block">
-                              {task.issueId}
-                            </span>
-                          )}
-                        </button>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                          <button
-                            onClick={() => handleOpenEdit(task)}
-                            className="p-1 hover:bg-surface-hover rounded transition-colors"
-                            title="Edit task"
-                          >
-                            <svg
-                              className="w-3.5 h-3.5 text-secondary hover:text-primary"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                              />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={() => handleDelete(task.id)}
-                            className="p-1 hover:bg-red-900/30 rounded transition-colors"
-                            title="Delete task"
-                          >
-                            <svg
-                              className="w-3.5 h-3.5 text-secondary hover:text-red-400"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-
-                      {task.description && (
-                        <p className="text-xs text-muted line-clamp-2 mt-1">
-                          {task.description}
-                        </p>
-                      )}
-
-                      <div className="flex gap-1 pt-2 mt-2 border-t border-default">
-                        {status !== "not-started" && (
-                          <button
-                            onClick={() =>
-                              handleUpdateStatus(
-                                task.id,
-                                status === "done" ? "in-progress" : "not-started"
-                              )
-                            }
-                            className="flex-1 px-2 py-1 text-xs text-secondary hover:text-primary hover:bg-surface-hover rounded transition-colors"
-                          >
-                            ← {status === "done" ? "In Progress" : "Not Started"}
-                          </button>
-                        )}
-                        {status !== "done" && (
-                          <button
-                            onClick={() =>
-                              handleUpdateStatus(
-                                task.id,
-                                status === "not-started" ? "in-progress" : "done"
-                              )
-                            }
-                            className="flex-1 px-2 py-1 text-xs text-secondary hover:text-primary hover:bg-surface-hover rounded transition-colors"
-                          >
-                            {status === "not-started" ? "In Progress" : "Done"} →
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <KanbanBoard
+          issues={tasks}
+          onSelectIssue={(taskId) => navigate(`/issue/${taskId}`)}
+          onEditIssue={handleOpenEdit}
+          onDeleteIssue={handleDelete}
+          onUpdateStatus={handleUpdateStatus}
+        />
       )}
 
       {/* Create Task Modal */}

@@ -370,7 +370,8 @@ export function ProjectDetail() {
       onReorderViews={handleReorderViews}
       breadcrumb={[{ label: project.name }]}
     >
-      <div className="flex gap-6 h-full">
+      <div className="space-y-6">
+        <div className="flex gap-6">
         {/* Main content area */}
         <div className="flex-1 min-w-0 space-y-6">
           {/* Project Header */}
@@ -504,15 +505,6 @@ export function ProjectDetail() {
               userId={getCurrentSession()?.userId || ""}
             />
           </div>
-
-          {/* Project Notes + Project Tasks - 50/50 split */}
-          <div className="grid grid-cols-2 gap-6 items-start">
-            <NotesBox contextType="project" contextId={project.id} />
-            <ProjectTasksBox
-              projectId={project.id}
-              createdBy={getCurrentSession()?.userId || ""}
-            />
-          </div>
         </div>
 
         {/* Right-hand sidebar - Only Documents and Links */}
@@ -525,6 +517,16 @@ export function ProjectDetail() {
             <LinksBox contextType="project" contextId={project.id} />
           </div>
         </aside>
+      </div>
+
+      {/* Project Notes + Project Tasks - full page width, Tasks gets room for 3 kanban columns */}
+      <div className="grid grid-cols-[1fr_2fr] gap-6 items-start">
+        <NotesBox contextType="project" contextId={project.id} />
+        <ProjectTasksBox
+          projectId={project.id}
+          createdBy={getCurrentSession()?.userId || ""}
+        />
+      </div>
       </div>
 
       {/* Create View Modal */}
