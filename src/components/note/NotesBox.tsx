@@ -291,7 +291,7 @@ export function NotesBox({ contextType, contextId }: NotesBoxProps) {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-secondary whitespace-pre-wrap">
+                <p className="text-sm text-secondary whitespace-pre-wrap break-words">
                   {note.content}
                 </p>
               )}

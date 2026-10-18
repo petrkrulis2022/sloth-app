@@ -519,13 +519,17 @@ export function ProjectDetail() {
         </aside>
       </div>
 
-      {/* Project Notes + Project Tasks - full page width, Tasks gets room for 3 kanban columns */}
-      <div className="grid grid-cols-[1fr_2fr] gap-6 items-start">
-        <NotesBox contextType="project" contextId={project.id} />
-        <ProjectTasksBox
-          projectId={project.id}
-          createdBy={getCurrentSession()?.userId || ""}
-        />
+      {/* Project Tasks + Project Notes - full page width, Tasks gets room for 3 kanban columns */}
+      <div className="grid grid-cols-[2fr_1fr] gap-6 items-start">
+        <div className="min-w-0">
+          <ProjectTasksBox
+            projectId={project.id}
+            createdBy={getCurrentSession()?.userId || ""}
+          />
+        </div>
+        <div className="min-w-0">
+          <NotesBox contextType="project" contextId={project.id} />
+        </div>
       </div>
       </div>
 
